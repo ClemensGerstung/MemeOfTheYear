@@ -1,0 +1,79 @@
+syntax="proto3";
+
+message SessionIdRequest {
+
+}
+
+message SessionIdResponse {
+    string sessionId = 1;
+    string imageId = 2;
+}
+
+message VoteRequest {
+    string sessionId = 1;
+    string imageId = 2;
+}
+
+message VoteResponse {
+    string nextImageId = 1;
+}
+
+message GetChallengeRequest {
+
+}
+
+message GetChallengeResponse {
+    int32 questionId = 1;
+    string questionText = 2;
+}
+
+message AnswerChallengeRequest {
+    int32 questionId = 1;
+    string answer = 2;
+}
+
+message AnswerChallengeResponse {
+    bool success = 1;
+}
+
+message GetImageRequest {
+    string imageId = 1;
+}
+
+message GetImageResponse {
+    string imageContent = 1;
+}
+
+message GetVotedImagesRequest {
+    int32 count = 1;
+}
+
+message VoteEntry {
+    string imageId = 1;
+    int32 votes = 2;
+}
+
+message GetVotedImagesResponse {
+    repeated VoteEntry entries = 1;
+}
+
+service VoteService {
+    rpc Init(SessionIdRequest) returns (SessionIdResponse);
+
+    rpc Like(VoteRequest) returns (VoteResponse);
+    rpc Dislike(VoteRequest) returns (VoteResponse);
+    rpc Skip(VoteRequest) returns (VoteResponse);
+}
+
+service ChallengeService {
+    rpc GetChallenge(GetChallengeRequest) returns (GetChallengeResponse);
+    rpc AnswerChallenge(AnswerChallengeRequest) returns (AnswerChallengeResponse);
+}
+
+service ImageService {
+    rpc GetImage(GetImageRequest) returns (GetImageResponse);
+
+    rpc GetMostLikedImages(GetVotedImagesRequest) returns (GetVotedImagesResponse);
+    rpc GetMostDislikedImages(GetVotedImagesRequest) returns (GetVotedImagesResponse);
+    rpc GetMostSkippedImages(GetVotedImagesRequest) returns (GetVotedImagesResponse);
+}

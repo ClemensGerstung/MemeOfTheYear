@@ -1,0 +1,9 @@
+obj/
+bin/
+grpc_csharp_plugin
+protoc-gen-grpc-web
+package-lock.json
+node_modules/
+dist/
+Migrations/
+images/
