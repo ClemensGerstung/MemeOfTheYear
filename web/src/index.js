@@ -3,7 +3,6 @@ const { VoteServicePromiseClient, ChallengeServicePromiseClient, ImageServicePro
 const Cookies = require('js-cookie');
 
 const host = process.env.GRPC_HOST;
-console.log(host);
 
 const challengeService = new ChallengeServicePromiseClient(host);
 const voteService = new VoteServicePromiseClient(host);

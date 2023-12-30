@@ -15,14 +15,15 @@ ADD *.cs /tmp/
 ADD *.proto /tmp/
 ADD net.csproj /tmp/
 ADD net.sln /tmp/
+ADD appsettings.json /tmp/
 ADD Server/ /tmp/Server/
-ADD images/ /tmp/images/
 
 ENV DOTNET_ROOT=/root/.dotnet
 ENV PATH=$PATH:$DOTNET_ROOT:$DOTNET_ROOT/tools
 ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
 ENV MEME_OF_THE_YEAR_DB=/share/db
-ENV MEME_OF_THE_YEAR_IMAGES=/tmp/images
+ENV MEME_OF_THE_YEAR_IMAGES=/share/images
+ENV MEME_OF_THE_YEAR_QUESTIONS=/share/questions.json
 
 RUN set -xe \
     && mkdir -p $MEME_OF_THE_YEAR_DB \
@@ -37,4 +38,4 @@ RUN set -xe \
 
 EXPOSE 8081
 
-CMD ["./bin/Release/net8.0/net", "--urls=http://0.0.0.0:8081/"]
+CMD ["./bin/Release/net8.0/net"]

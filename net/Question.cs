@@ -8,6 +8,8 @@ namespace MemeOfTheYear
     public interface IMemeOfTheYearContext : IDisposable
     {
         Task AddQuestion(int id, string question, List<string> answers);
+        
+        Task AddQuestions(IEnumerable<Question> questions);
 
         Task<Question> GetRandomQuestion();
 
@@ -82,6 +84,14 @@ namespace MemeOfTheYear
             await SaveChangesAsync();
         }
 
+        public async Task AddQuestions(IEnumerable<Question> questions) 
+        {
+            foreach (var question in questions)
+            {
+                await AddQuestion(question.Id, question.Text, question.Answers);
+            }
+        }
+
         public async Task<Question> GetRandomQuestion()
         {
             var size = await Questions.CountAsync();
@@ -96,11 +106,14 @@ namespace MemeOfTheYear
         {
             var question = await Questions.FindAsync(id);
 
-            return question?.Answers?.Contains(answer) ?? false;
+            return question?.Answers?.Contains(answer, StringComparer.InvariantCultureIgnoreCase) ?? false;
         }
 
         public async Task InitImages()
         {
+            Images.RemoveRange(Images);
+            await SaveChangesAsync();
+
             var directory = new DirectoryInfo(ImagePath);
             foreach (var item in directory.GetFiles())
             {
@@ -129,7 +142,7 @@ namespace MemeOfTheYear
             using var memoryStream = new MemoryStream();
             await stream.CopyToAsync(memoryStream);
 
-            var data = "data:image/png;base64, " + Convert.ToBase64String(memoryStream.ToArray());
+            var data = "data:image/jpg;base64, " + Convert.ToBase64String(memoryStream.ToArray());
             // _logger.LogInformation("data: {0}", data);
 
             return data;
@@ -254,7 +267,7 @@ namespace MemeOfTheYear
 
         public string Text { get; set; }
 
-        public List<string> Answers { get; set; }
+        public List<string> Answers { get; set; } = new List<string>();
     }
 
     public class Image
