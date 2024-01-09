@@ -1,5 +1,7 @@
 ﻿using Json.Net;
-using MemeOfTheYear;
+using MemeOfTheYear.Backend.Database;
+using MemeOfTheYear.Backend.Server;
+using MemeOfTheYear.Backend.Types;
 
 // this sets up the whole webstuff for rRPC
 var builder = WebApplication.CreateBuilder(args);
@@ -25,17 +27,16 @@ app.UseRouting();
 app.UseGrpcWeb();
 app.MapGet("/", () => "This gRPC service is gRPC-Web enabled, CORS enabled, and is callable from browser apps uisng the gRPC-Web protocal");
 
-_ = app.UseEndpoints(endpoints =>
-{
-    endpoints.MapGrpcService<VoteServer>().EnableGrpcWeb();
-    endpoints.MapGrpcService<ChallengeServer>().EnableGrpcWeb();
-    endpoints.MapGrpcService<ImageServer>().EnableGrpcWeb();
-});
+app.MapGrpcService<VoteServer>().EnableGrpcWeb();
+app.MapGrpcService<ChallengeServer>().EnableGrpcWeb();
+app.MapGrpcService<ImageServer>().EnableGrpcWeb();
+app.MapGrpcService<ResultServer>().EnableGrpcWeb();
 
 var dbContext = app.Services.GetService<IMemeOfTheYearContext>();
 
 if (dbContext != null)
 {
+    // TODO: move to custom handler
     var questionsPath = Environment.GetEnvironmentVariable("MEME_OF_THE_YEAR_QUESTIONS");
     var file = new FileInfo(questionsPath ?? "/share/questions.json");
     if (file.Exists)
@@ -49,30 +50,31 @@ if (dbContext != null)
         await dbContext.AddQuestions(questions);
     }
 
-    var imagePath = Environment.GetEnvironmentVariable("MEME_OF_THE_YEAR_IMAGES") ?? "/tmp/images";
-    using var watcher = new FileSystemWatcher(imagePath);
+    // TODO: move to custom handler
+    // var imagePath = Environment.GetEnvironmentVariable("MEME_OF_THE_YEAR_IMAGES") ?? "/tmp/images";
+    // using var watcher = new FileSystemWatcher(imagePath);
 
-    watcher.NotifyFilter = NotifyFilters.Attributes
-                         | NotifyFilters.CreationTime
-                         | NotifyFilters.DirectoryName
-                         | NotifyFilters.FileName
-                         | NotifyFilters.LastAccess
-                         | NotifyFilters.LastWrite
-                         | NotifyFilters.Security
-                         | NotifyFilters.Size;
+    // watcher.NotifyFilter = NotifyFilters.Attributes
+    //                      | NotifyFilters.CreationTime
+    //                      | NotifyFilters.DirectoryName
+    //                      | NotifyFilters.FileName
+    //                      | NotifyFilters.LastAccess
+    //                      | NotifyFilters.LastWrite
+    //                      | NotifyFilters.Security
+    //                      | NotifyFilters.Size;
 
-    watcher.Changed += HandleFileSystemWatcherEvent;
-    watcher.Created += HandleFileSystemWatcherEvent;
-    watcher.Deleted += HandleFileSystemWatcherEvent;
-    watcher.Renamed += HandleFileSystemWatcherEvent;
-    watcher.Error += (_, e) =>
-    {
-        Console.WriteLine(e);
-    };
+    // watcher.Changed += HandleFileSystemWatcherEvent;
+    // watcher.Created += HandleFileSystemWatcherEvent;
+    // watcher.Deleted += HandleFileSystemWatcherEvent;
+    // watcher.Renamed += HandleFileSystemWatcherEvent;
+    // watcher.Error += (_, e) =>
+    // {
+    //     Console.WriteLine(e);
+    // };
 
-    watcher.Filter = "*.jpg";
-    watcher.IncludeSubdirectories = false;
-    watcher.EnableRaisingEvents = true;
+    // watcher.Filter = "*.jpg";
+    // watcher.IncludeSubdirectories = false;
+    // watcher.EnableRaisingEvents = true;
 
     await dbContext.InitImages();
 }
@@ -80,7 +82,7 @@ if (dbContext != null)
 app.Run();
 dbContext?.Dispose();
 
-async void HandleFileSystemWatcherEvent(object sender, FileSystemEventArgs e)
-{
-    await dbContext.InitImages();
-}
+// async void HandleFileSystemWatcherEvent(object sender, FileSystemEventArgs e)
+// {
+//     await dbContext.InitImages();
+// }

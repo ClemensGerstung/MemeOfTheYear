@@ -23,10 +23,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Protobuf Include="memeoftheyear.proto" GrpcServices="Service" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="$(SolutionDir)images\**" CopyToOutputDirectory="PreserveNewest" />
+    <Protobuf Include="../memeoftheyear.proto" GrpcServices="Service" />
   </ItemGroup>
 </Project>

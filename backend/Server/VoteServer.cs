@@ -1,6 +1,8 @@
 using Grpc.Core;
+using MemeOfTheYear.Backend.Database;
+using MemeOfTheYear.Backend.Types;
 
-namespace MemeOfTheYear
+namespace MemeOfTheYear.Backend.Server
 {
     public class VoteServer : VoteService.VoteServiceBase
     {
@@ -21,7 +23,7 @@ namespace MemeOfTheYear
 
         public override async Task<VoteResponse> Like(VoteRequest request, ServerCallContext context)
         {
-            await _context.Vote(request.SessionId, request.ImageId, Vote.Like);
+            await _context.Vote(request.SessionId, request.ImageId, VoteType.Like);
             var nextImageId = await _context.GetNextRandomImage(request.SessionId);
 
             return new VoteResponse { NextImageId = nextImageId.Id };
@@ -29,7 +31,7 @@ namespace MemeOfTheYear
 
         public override async Task<VoteResponse> Dislike(VoteRequest request, ServerCallContext context)
         {
-            await _context.Vote(request.SessionId, request.ImageId, Vote.Dislike);
+            await _context.Vote(request.SessionId, request.ImageId, VoteType.Dislike);
             var nextImageId = await _context.GetNextRandomImage(request.SessionId);
 
             return new VoteResponse { NextImageId = nextImageId.Id };
@@ -39,7 +41,7 @@ namespace MemeOfTheYear
         {
             if (!string.IsNullOrEmpty(request.ImageId))
             {
-                await _context.Vote(request.SessionId, request.ImageId, Vote.Skip);
+                await _context.Vote(request.SessionId, request.ImageId, VoteType.Skip);
             }
 
             var nextImageId = await _context.GetNextRandomImage(request.SessionId);

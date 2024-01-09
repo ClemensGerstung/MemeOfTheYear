@@ -1,5 +1,9 @@
 syntax="proto3";
 
+option csharp_namespace = "MemeOfTheYear";
+
+package memeoftheyear;
+
 message SessionIdRequest {
 
 }
@@ -16,6 +20,7 @@ message VoteRequest {
 
 message VoteResponse {
     string nextImageId = 1;
+    int32 remainingLikes = 2;
 }
 
 message GetChallengeRequest {
@@ -38,6 +43,7 @@ message AnswerChallengeResponse {
 
 message GetImageRequest {
     string imageId = 1;
+    string sessionId = 2;
 }
 
 message GetImageResponse {
@@ -46,6 +52,7 @@ message GetImageResponse {
 
 message GetVotedImagesRequest {
     int32 count = 1;
+    string sessionId = 2;
 }
 
 message VoteEntry {
@@ -72,7 +79,9 @@ service ChallengeService {
 
 service ImageService {
     rpc GetImage(GetImageRequest) returns (GetImageResponse);
+}
 
+service ResultService {
     rpc GetMostLikedImages(GetVotedImagesRequest) returns (GetVotedImagesResponse);
     rpc GetMostDislikedImages(GetVotedImagesRequest) returns (GetVotedImagesResponse);
     rpc GetMostSkippedImages(GetVotedImagesRequest) returns (GetVotedImagesResponse);

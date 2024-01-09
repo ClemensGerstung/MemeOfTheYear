@@ -1,22 +1,17 @@
 FROM ubuntu:22.04
 
-
 RUN set -xe \
     && apt update \
     && apt install -y wget \
     && wget https://dot.net/v1/dotnet-install.sh -O dotnet-install.sh \
     && chmod +x ./dotnet-install.sh \
-    && ./dotnet-install.sh --channel 8.0 \
-    && ./dotnet-install.sh --channel 8.0 --runtime aspnetcore
+    && ./dotnet-install.sh --version latest \
+    && ./dotnet-install.sh --version latest --runtime aspnetcore
 
-WORKDIR /tmp
+WORKDIR /tmp/backend
 
-ADD *.cs /tmp/
-ADD *.proto /tmp/
-ADD net.csproj /tmp/
-ADD net.sln /tmp/
-ADD appsettings.json /tmp/
-ADD Server/ /tmp/Server/
+ADD memeoftheyear.proto /tmp/
+ADD backend/ /tmp/backend/
 
 ENV DOTNET_ROOT=/root/.dotnet
 ENV PATH=$PATH:$DOTNET_ROOT:$DOTNET_ROOT/tools
@@ -30,12 +25,10 @@ RUN set -xe \
     && dotnet tool install --global dotnet-ef \
     && dotnet ef migrations add InitialCreate \
     && dotnet ef database update \
-    && dotnet publish
-
-RUN set -xe \
+    && dotnet publish \
     && rm -r ./bin/Debug \
     && rm -rf /var/lib/apt/lists/*
 
 EXPOSE 8081
 
-CMD ["./bin/Release/net8.0/net"]
+CMD ["dotnet", "run"]

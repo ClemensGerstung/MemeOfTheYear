@@ -1,8 +1,7 @@
-using System;
-using System.Threading.Tasks;
 using Grpc.Core;
+using MemeOfTheYear.Backend.Database;
 
-namespace MemeOfTheYear
+namespace MemeOfTheYear.Backend.Server
 {
     public class ChallengeServer : ChallengeService.ChallengeServiceBase
     {

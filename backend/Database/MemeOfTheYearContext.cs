@@ -1,39 +1,8 @@
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
+using MemeOfTheYear.Backend.Types;
 
-namespace MemeOfTheYear
+namespace MemeOfTheYear.Backend.Database
 {
-
-    public interface IMemeOfTheYearContext : IDisposable
-    {
-        Task AddQuestion(int id, string question, List<string> answers);
-        
-        Task AddQuestions(IEnumerable<Question> questions);
-
-        Task<Question> GetRandomQuestion();
-
-        Task<bool> CheckQuestionAnswer(int id, string answer);
-
-        Task InitImages();
-
-        Task<string> GetImageData(string imageId);
-
-        Task<Image> GetRandomImage();
-
-        Task<Image> GetNextRandomImage(string session);
-
-        Task<Session> GetNewSession();
-
-        Task Vote(string sessionId, string imageId, Vote vote);
-
-        Task<List<VoteResult>> GetMostLikedImages(int count);
-
-        Task<List<VoteResult>> GetMostDislikedImages(int count);
-
-        Task<List<VoteResult>> GetMostSkippedImages(int count);
-    }
-
     public class MemeOfTheYearContext : DbContext, IMemeOfTheYearContext
     {
         private readonly ILogger _logger;
@@ -41,7 +10,7 @@ namespace MemeOfTheYear
         public DbSet<Question> Questions { get; set; }
         public DbSet<Image> Images { get; set; }
         public DbSet<Session> Sessions { get; set; }
-        public DbSet<VoteEntry> VoteEntries { get; set; }
+        public DbSet<Types.VoteEntry> VoteEntries { get; set; }
 
         public string DbPath { get; }
 
@@ -67,7 +36,7 @@ namespace MemeOfTheYear
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
-            modelBuilder.Entity<VoteEntry>()
+            modelBuilder.Entity<Types.VoteEntry>()
                         .Property(f => f.Id)
                         .ValueGeneratedOnAdd();
         }
@@ -80,8 +49,12 @@ namespace MemeOfTheYear
                 return;
             }
 
+            using var transaction = await Database.BeginTransactionAsync();
+
             await Questions.AddAsync(new Question { Id = id, Text = question, Answers = answers });
             await SaveChangesAsync();
+
+            await transaction.CommitAsync();
         }
 
         public async Task AddQuestions(IEnumerable<Question> questions) 
@@ -111,6 +84,8 @@ namespace MemeOfTheYear
 
         public async Task InitImages()
         {
+            using var transaction = await Database.BeginTransactionAsync();
+
             Images.RemoveRange(Images);
             await SaveChangesAsync();
 
@@ -131,6 +106,7 @@ namespace MemeOfTheYear
             }
 
             await SaveChangesAsync();
+            await transaction.CommitAsync();
         }
 
         public async Task<string> GetImageData(string imageId)
@@ -183,15 +159,19 @@ namespace MemeOfTheYear
 
         public async Task<Session> GetNewSession()
         {
+            using var transaction = await Database.BeginTransactionAsync();
+
             var guid = Guid.NewGuid();
             var session = new Session { Id = guid.ToString() };
             await Sessions.AddAsync(session);
             await SaveChangesAsync();
 
+            await transaction.CommitAsync();
+
             return session;
         }
 
-        public async Task Vote(string sessionId, string imageId, Vote vote)
+        public async Task Vote(string sessionId, string imageId, VoteType vote)
         {
             var session = await Sessions.FindAsync(sessionId);
             _ = session ?? throw new Exception($"Unknown Session {sessionId}");
@@ -199,7 +179,7 @@ namespace MemeOfTheYear
             var image = await Images.FindAsync(imageId);
             _ = image ?? throw new Exception($"Unknown Session {imageId}");
 
-            var entry = new VoteEntry {
+            var entry = new Types.VoteEntry {
                 Session = session,
                 Image = image,
                 Vote = vote
@@ -207,8 +187,12 @@ namespace MemeOfTheYear
 
             _logger.LogInformation($"Voted {sessionId} for image {imageId}: {vote}");
 
+            using var transaction = await Database.BeginTransactionAsync();
+
             await VoteEntries.AddAsync(entry);
             await SaveChangesAsync();
+
+            await transaction.CommitAsync();
         }
 
         public Task<List<VoteResult>> GetMostLikedImages(int count) 
@@ -216,7 +200,7 @@ namespace MemeOfTheYear
             var result = VoteEntries.GroupBy(x => x.Image, x => x.Vote)
                         .Select(x => new VoteResult {
                             Image = x.Key, 
-                            Votes = x.Count(y => y == MemeOfTheYear.Vote.Like)
+                            Votes = x.Count(y => y == VoteType.Like)
                         })
                         .OrderByDescending(x => x.Votes)
                         .Take(count)
@@ -230,7 +214,7 @@ namespace MemeOfTheYear
             var result = VoteEntries.GroupBy(x => x.Image, x => x.Vote)
                         .Select(x => new VoteResult {
                             Image = x.Key, 
-                            Votes = x.Count(y => y == MemeOfTheYear.Vote.Dislike)
+                            Votes = x.Count(y => y == VoteType.Dislike)
                         })
                         .OrderByDescending(x => x.Votes)
                         .Take(count)
@@ -244,7 +228,7 @@ namespace MemeOfTheYear
             var result = VoteEntries.GroupBy(x => x.Image, x => x.Vote)
                         .Select(x => new VoteResult {
                             Image = x.Key, 
-                            Votes = x.Count(y => y == MemeOfTheYear.Vote.Skip)
+                            Votes = x.Count(y => y == VoteType.Skip)
                         })
                         .OrderByDescending(x => x.Votes)
                         .Take(count)
@@ -252,49 +236,6 @@ namespace MemeOfTheYear
 
             return Task.FromResult(result);
         }
-    }
-
-    public class VoteResult 
-    {
-        public Image Image { get; set; }
-
-        public int Votes { get; set; }
-    }
-
-    public class Question
-    {
-        public int Id { get; set; }
-
-        public string Text { get; set; }
-
-        public List<string> Answers { get; set; } = new List<string>();
-    }
-
-    public class Image
-    {
-        public string Id { get; set; }
-    }
-
-    public class Session
-    {
-        public string Id { get; set; }
-    }
-
-    public enum Vote
-    {
-        Like,
-        Dislike,
-        Skip
-    }
-
-    public class VoteEntry
-    {
-        public int Id { get; set; }
-        public Session Session { get; set; }
-
-        public Image Image { get; set; }
-
-        public Vote Vote { get; set; }
     }
 
 }

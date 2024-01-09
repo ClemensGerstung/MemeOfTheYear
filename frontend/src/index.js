@@ -1,8 +1,9 @@
-const { SessionIdRequest, VoteRequest, GetChallengeRequest, AnswerChallengeRequest, GetImageRequest, GetVotedImagesRequest } = require('./memeoftheyear_pb.js');
-const { VoteServicePromiseClient, ChallengeServicePromiseClient, ImageServicePromiseClient } = require('./memeoftheyear_grpc_web_pb.js');
+const { SessionIdRequest, VoteRequest, GetChallengeRequest, AnswerChallengeRequest, GetImageRequest, GetVotedImagesRequest } = require('../protogen/memeoftheyear_pb.js');
+const { VoteServicePromiseClient, ChallengeServicePromiseClient, ImageServicePromiseClient } = require('../protogen/memeoftheyear_grpc_web_pb.js');
 const Cookies = require('js-cookie');
 
 const host = process.env.GRPC_HOST;
+console.log(host);
 
 const challengeService = new ChallengeServicePromiseClient(host);
 const voteService = new VoteServicePromiseClient(host);
