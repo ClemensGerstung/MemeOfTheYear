@@ -20,9 +20,9 @@ namespace MemeOfTheYear.Backend.Database
         {
             _logger = logger;
 
-            var folder = Environment.GetEnvironmentVariable("MEME_OF_THE_YEAR_DB") 
+            var folder = Environment.GetEnvironmentVariable("MEME_OF_THE_YEAR_DB")
                 ?? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-            
+
             DbPath = System.IO.Path.Join(folder, "memeoftheyear.db");
             ImagePath = Environment.GetEnvironmentVariable("MEME_OF_THE_YEAR_IMAGES") ?? "/tmp/images";
 
@@ -57,7 +57,7 @@ namespace MemeOfTheYear.Backend.Database
             await transaction.CommitAsync();
         }
 
-        public async Task AddQuestions(IEnumerable<Question> questions) 
+        public async Task AddQuestions(IEnumerable<Question> questions)
         {
             foreach (var question in questions)
             {
@@ -134,16 +134,20 @@ namespace MemeOfTheYear.Backend.Database
             return Task.FromResult(realImages[index]);
         }
 
-        public Task<Image> GetNextRandomImage(string sessionId)
+        public Task<Image> GetNextRandomImage(string currentImageId, string sessionId)
         {
+            _logger.LogInformation($"GetNextRandomImage(currentImageId: {currentImageId}, sessionId: {sessionId})");
             var unvotedImages = Images.Where(x => x.Id != "default")
+                                      .Where(x => x.Id != currentImageId)
                                       .Except(VoteEntries.Where(x => x.Session.Id == sessionId)
                                                          .Select(x => x.Image))
                                       .ToArray();
-            if(unvotedImages.Length == 0)
+            _logger.LogInformation($"remaining images: {string.Join(',', unvotedImages.Select(x => x.Id))}");
+
+            if (unvotedImages.Length == 0)
             {
                 _logger.LogWarning($"no more images left for session {sessionId}");
-                return Task.FromResult(new Image {Id = string.Empty});
+                return Task.FromResult(new Image { Id = string.Empty });
             }
 
             _logger.LogInformation($"remaining images: {string.Join(',', unvotedImages.Select(x => x.Id))}");
@@ -157,49 +161,64 @@ namespace MemeOfTheYear.Backend.Database
             return Task.FromResult(unvotedImages[index]);
         }
 
-        public async Task<Session> GetNewSession()
+        public async Task<Session> GetNewSession(int maxLikes)
         {
+            _logger.LogInformation($"GetNewSession(maxLikes: {maxLikes})");
             using var transaction = await Database.BeginTransactionAsync();
 
             var guid = Guid.NewGuid();
-            var session = new Session { Id = guid.ToString() };
+            var session = new Session
+            {
+                Id = guid.ToString(),
+                MaxLikes = maxLikes
+            };
             await Sessions.AddAsync(session);
             await SaveChangesAsync();
 
             await transaction.CommitAsync();
 
+            _logger.LogInformation($"new session {session.Id}");
             return session;
         }
 
-        public async Task Vote(string sessionId, string imageId, VoteType vote)
+        public async Task<int> Vote(string sessionId, string imageId, VoteType vote)
         {
+            _logger.LogInformation($"Vote(sessionId: {sessionId}, imageId: {imageId}, vote: {vote})");
+
             var session = await Sessions.FindAsync(sessionId);
             _ = session ?? throw new Exception($"Unknown Session {sessionId}");
-            
+
             var image = await Images.FindAsync(imageId);
             _ = image ?? throw new Exception($"Unknown Session {imageId}");
 
-            var entry = new Types.VoteEntry {
-                Session = session,
-                Image = image,
-                Vote = vote
-            };
+            if (vote != VoteType.Skip) // TODO: make configurable
+            {
+                var entry = new Types.VoteEntry
+                {
+                    Session = session,
+                    Image = image,
+                    Vote = vote
+                };
 
-            _logger.LogInformation($"Voted {sessionId} for image {imageId}: {vote}");
+                _logger.LogInformation($"Voted {sessionId} for image {imageId}: {vote}");
 
-            using var transaction = await Database.BeginTransactionAsync();
+                using var transaction = await Database.BeginTransactionAsync();
 
-            await VoteEntries.AddAsync(entry);
-            await SaveChangesAsync();
+                await VoteEntries.AddAsync(entry);
+                await SaveChangesAsync();
 
-            await transaction.CommitAsync();
+                await transaction.CommitAsync();
+            }
+
+            return session.MaxLikes - VoteEntries.Count(x => x.Session == session && x.Vote == VoteType.Like);
         }
 
-        public Task<List<VoteResult>> GetMostLikedImages(int count) 
+        public Task<List<VoteResult>> GetMostLikedImages(int count)
         {
             var result = VoteEntries.GroupBy(x => x.Image, x => x.Vote)
-                        .Select(x => new VoteResult {
-                            Image = x.Key, 
+                        .Select(x => new VoteResult
+                        {
+                            Image = x.Key,
                             Votes = x.Count(y => y == VoteType.Like)
                         })
                         .OrderByDescending(x => x.Votes)
@@ -209,11 +228,12 @@ namespace MemeOfTheYear.Backend.Database
             return Task.FromResult(result);
         }
 
-        public Task<List<VoteResult>> GetMostDislikedImages(int count) 
+        public Task<List<VoteResult>> GetMostDislikedImages(int count)
         {
             var result = VoteEntries.GroupBy(x => x.Image, x => x.Vote)
-                        .Select(x => new VoteResult {
-                            Image = x.Key, 
+                        .Select(x => new VoteResult
+                        {
+                            Image = x.Key,
                             Votes = x.Count(y => y == VoteType.Dislike)
                         })
                         .OrderByDescending(x => x.Votes)
@@ -223,11 +243,12 @@ namespace MemeOfTheYear.Backend.Database
             return Task.FromResult(result);
         }
 
-        public Task<List<VoteResult>> GetMostSkippedImages(int count) 
+        public Task<List<VoteResult>> GetMostSkippedImages(int count)
         {
             var result = VoteEntries.GroupBy(x => x.Image, x => x.Vote)
-                        .Select(x => new VoteResult {
-                            Image = x.Key, 
+                        .Select(x => new VoteResult
+                        {
+                            Image = x.Key,
                             Votes = x.Count(y => y == VoteType.Skip)
                         })
                         .OrderByDescending(x => x.Votes)
@@ -235,6 +256,16 @@ namespace MemeOfTheYear.Backend.Database
                         .ToList();
 
             return Task.FromResult(result);
+        }
+
+        public async Task<bool> CheckSession(string sessionId)
+        {
+            return await Sessions.FindAsync(sessionId) != null;
+        }
+
+        public async Task<List<Image>> GetAllImages()
+        {
+            return await Images.ToListAsync();
         }
     }
 

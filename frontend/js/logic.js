@@ -1,11 +1,13 @@
 const modal_element = document.getElementById("staticBackdrop")
 const challenge_modal = new bootstrap.Modal(modal_element);
 
-function disable_voting() {
-    const image = document.getElementById("meme-img");
-    const image_id = image.getAttribute("image-id");
+function disable_voting(remainingLikes, finished) {
+    if(remainingLikes == 0) {
+        const buttons = document.getElementsByClassName("btn-like");
+        [...buttons].forEach((element) => element.setAttribute("disabled", ""));
+    }
     
-    if(image_id === "") {
+    if(finished) {
         const buttons = document.getElementsByClassName("btn");
         [...buttons].forEach((element) => element.setAttribute("disabled", ""));
     }
@@ -16,13 +18,13 @@ async function like_meme() {
     const image_id = image.getAttribute("image-id");
     const session_id = MemeOfTheYear.getSessionId();
 
-    const nextImageId = await MemeOfTheYear.like(session_id, image_id);
-    const content = await MemeOfTheYear.getImage(nextImageId);
+    const nextImage = await MemeOfTheYear.like(session_id, image_id);
+    const content = await MemeOfTheYear.getImage(session_id, nextImage.imageId);
 
     image.src = content;
-    image.setAttribute("image-id", nextImageId);
+    image.setAttribute("image-id", nextImage.imageId);
 
-    disable_voting();
+    disable_voting(nextImage.likes, nextImage.finished);
 }
 
 async function dislike_meme() {
@@ -30,13 +32,13 @@ async function dislike_meme() {
     const image_id = image.getAttribute("image-id");
     const session_id = MemeOfTheYear.getSessionId();
 
-    const nextImageId = await MemeOfTheYear.dislike(session_id, image_id);
-    const content = await MemeOfTheYear.getImage(nextImageId);
+    const nextImage = await MemeOfTheYear.dislike(session_id, image_id);
+    const content = await MemeOfTheYear.getImage(session_id, nextImage.imageId);
 
     image.src = content;
-    image.setAttribute("image-id", nextImageId);
+    image.setAttribute("image-id", nextImage.imageId);
 
-    disable_voting();
+    disable_voting(nextImage.likes, nextImage.finished);
 }
 
 async function skip_meme() {
@@ -44,13 +46,13 @@ async function skip_meme() {
     const image_id = image.getAttribute("image-id");
     const session_id = MemeOfTheYear.getSessionId();
 
-    const nextImageId = await MemeOfTheYear.skip(session_id, image_id);
-    const content = await MemeOfTheYear.getImage(nextImageId);
+    const nextImage = await MemeOfTheYear.skip(session_id, image_id);
+    const content = await MemeOfTheYear.getImage(session_id, nextImage.imageId);
 
     image.src = content;
-    image.setAttribute("image-id", nextImageId);
+    image.setAttribute("image-id", nextImage.imageId);
 
-    disable_voting();
+    disable_voting(nextImage.likes, nextImage.finished);
 }
 
 async function check_challenge() {
@@ -65,7 +67,7 @@ async function check_challenge() {
         const session = await MemeOfTheYear.init();
         MemeOfTheYear.setSessionId(session.sessionId);
 
-        const content = await MemeOfTheYear.getImage(session.imageId);
+        const content = await MemeOfTheYear.getImage(session.sessionId, session.imageId);
 
         const image = document.getElementById("meme-img");
         image.src = content;
@@ -103,13 +105,13 @@ async function init_this_stuff() {
     if (cookie_session === "" || cookie_session === undefined) {
         challenge_modal.show();
     } else {
-        const nextImageId = await MemeOfTheYear.skip(cookie_session, "");
-        const content = await MemeOfTheYear.getImage(nextImageId);
+        const nextImage = await MemeOfTheYear.skip(cookie_session, "");
+        const content = await MemeOfTheYear.getImage(cookie_session, nextImage.imageId);
 
         const image = document.getElementById("meme-img");
         image.src = content;
-        image.setAttribute("image-id", nextImageId);
+        image.setAttribute("image-id", nextImage.imageId);
 
-        disable_voting();
+        disable_voting(nextImage.likes, nextImage.finished);
     }
 }

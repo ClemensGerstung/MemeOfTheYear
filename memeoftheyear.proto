@@ -5,7 +5,7 @@ option csharp_namespace = "MemeOfTheYear";
 package memeoftheyear;
 
 message SessionIdRequest {
-
+    int32 maxLikes = 1;
 }
 
 message SessionIdResponse {
@@ -21,6 +21,7 @@ message VoteRequest {
 message VoteResponse {
     string nextImageId = 1;
     int32 remainingLikes = 2;
+    bool finished = 3;
 }
 
 message GetChallengeRequest {
@@ -64,6 +65,14 @@ message GetVotedImagesResponse {
     repeated VoteEntry entries = 1;
 }
 
+message GetImagesRequest {
+    string sessionId = 1;
+}
+
+message GetImagesResponse {
+    repeated string imageIds = 1;
+}
+
 service VoteService {
     rpc Init(SessionIdRequest) returns (SessionIdResponse);
 
@@ -79,6 +88,8 @@ service ChallengeService {
 
 service ImageService {
     rpc GetImage(GetImageRequest) returns (GetImageResponse);
+
+    rpc GetAllImages(GetImagesRequest) returns (GetImagesResponse);
 }
 
 service ResultService {
