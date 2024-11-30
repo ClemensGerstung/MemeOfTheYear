@@ -1,0 +1,34 @@
+﻿@page "/counter"
+@rendermode InteractiveServer
+
+@using System.Buffers.Text
+@inject ILogger<Counter> Logger
+
+<PageTitle>Counter</PageTitle>
+
+@foreach (var img in images) {
+    <p>
+        <img src="data:image/jpg;base64,@img" class="rounded img-fluid" />
+    </p>
+}
+
+@code {
+    private List<string> images = new();
+
+    protected override async Task OnInitializedAsync() 
+    {
+        var path = Path.Combine("Development", "unsafe_uploads");
+        var dirInfo = new DirectoryInfo(path);
+        
+        foreach(var file in dirInfo.GetFiles()) 
+        {
+            using var stream = file.OpenRead();
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer);
+            buffer.Seek(0, SeekOrigin.Begin);
+            
+            var base64 = Convert.ToBase64String(buffer.ToArray());
+            images.Add(base64);
+        }
+    }
+}

@@ -1,0 +1,40 @@
+﻿@page "/todo"
+@using Grpc.Core
+@using Grpc.Net.Client
+@using GrpcGreeter
+@rendermode InteractiveServer
+
+<ul>
+    @foreach (var item in content)
+    {
+        <li>@item</li>
+    }
+</ul>
+
+@code {
+    private List<string> content = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var channel = GrpcChannel.ForAddress("http://localhost:5000");
+        var client = new Greeter.GreeterClient(channel);
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                using var call = client.SayHello(new HelloRequest { Name = "asdf" }, deadline: DateTime.UtcNow.AddSeconds(5));
+
+                await foreach (var response in call.ResponseStream.ReadAllAsync())
+                {
+                    content.Add(response.Message);
+                    await InvokeAsync(StateHasChanged);
+                }
+            }
+            catch (RpcException ex) when (ex.StatusCode == StatusCode.DeadlineExceeded)
+            {
+                // TODO?
+            }
+        });
+    }
+}
