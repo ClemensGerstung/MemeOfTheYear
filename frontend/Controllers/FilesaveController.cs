@@ -65,7 +65,7 @@ public class FilesaveController(
                             "image/gif" => ".gif",
                             _ => throw new Exception("AAAAAA")
                         };
-                        trustedFileNameForFileStorage = string.Join("", hash.Select(x => x.ToString("X2"))) + ext;
+                        trustedFileNameForFileStorage = Path.GetRandomFileName() + ext;
                         var path = Path.Combine(env.ContentRootPath,
                             env.EnvironmentName, "unsafe_uploads",
                             trustedFileNameForFileStorage);

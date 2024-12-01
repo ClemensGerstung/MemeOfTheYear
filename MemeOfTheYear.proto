@@ -1,0 +1,132 @@
+syntax="proto3";
+
+option csharp_namespace = "MemeOfTheYear";
+
+package memeoftheyear;
+
+message Image {
+  string id = 1;
+  string hash = 2;
+  string mimeType = 3;
+  int32 uploaded = 4;
+  int32 likes = 5;
+  int32 dislikes = 6;
+  bool enabled = 7;
+}
+
+message VoteEntry {
+  string imageId = 1;
+  int32 votes = 2;
+}
+
+message UploadEntry {
+  string filename = 1;
+  string mimeType = 2;
+}
+
+message SessionIdRequest {
+  string sessionId = 1;  
+  int32 maxLikes = 2;
+}
+
+message SessionIdResponse {
+  string sessionId = 1;
+  bool isAuthenticated = 2;
+  string imageId = 3;
+}
+
+message VoteRequest {
+  string sessionId = 1;
+  string imageId = 2;
+}
+
+message VoteResponse {
+  string nextImageId = 1;
+  int32 remainingLikes = 2;
+  bool finished = 3;
+}
+
+message GetChallengeRequest {
+
+}
+
+message GetChallengeResponse {
+  int32 questionId = 1;
+  string questionText = 2;
+}
+
+message AnswerChallengeRequest {
+  string sessionId = 1;
+  int32 questionId = 2;
+  string answer = 3;
+}
+
+message AnswerChallengeResponse {
+  bool success = 1;
+}
+
+message GetImageRequest {
+  string imageId = 1;
+  string sessionId = 2;
+}
+
+message GetImageResponse {
+  string imageContent = 1;
+}
+
+message GetVotedImagesRequest {
+  int32 count = 1;
+  string sessionId = 2;
+}
+
+message GetVotedImagesResponse {
+  repeated VoteEntry entries = 1;
+}
+
+message GetImagesRequest {
+  string sessionId = 1;
+}
+
+message GetImagesResponse {
+  repeated Image images = 1;
+}
+
+message UploadImageRequest {
+  string sessionId = 1;
+  repeated UploadEntry entries = 2;
+}
+
+message UploadImageResponse {
+  repeated Image images = 1;
+}
+
+service VoteService {
+  rpc Init(SessionIdRequest) returns (SessionIdResponse);
+
+  rpc Like(VoteRequest) returns (VoteResponse);
+  rpc Dislike(VoteRequest) returns (VoteResponse);
+  rpc Skip(VoteRequest) returns (VoteResponse);
+}
+
+service ChallengeService {
+  rpc GetChallenge(GetChallengeRequest) returns (GetChallengeResponse);
+  rpc AnswerChallenge(AnswerChallengeRequest) returns (AnswerChallengeResponse);
+}
+
+service ImageService {
+  rpc UploadImage(UploadImageRequest) returns (UploadImageResponse);
+
+  rpc GetImage(GetImageRequest) returns (GetImageResponse);
+
+  rpc GetAllImages(GetImagesRequest) returns (GetImagesResponse);
+}
+
+service ResultService {
+  rpc GetMostLikedImages(GetVotedImagesRequest) returns (GetVotedImagesResponse);
+  rpc GetMostDislikedImages(GetVotedImagesRequest) returns (GetVotedImagesResponse);
+  rpc GetMostSkippedImages(GetVotedImagesRequest) returns (GetVotedImagesResponse);
+}
+
+service AdminService {
+
+}

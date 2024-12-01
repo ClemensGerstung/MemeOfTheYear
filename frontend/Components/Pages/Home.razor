@@ -64,19 +64,6 @@
 
     protected override bool ShouldRender() => shouldRender;
 
-    protected override async Task OnInitializedAsync()
-    {
-        var result = await ProtectedLocalStore.GetAsync<string>("id");
-        if(result.Success) {
-            Logger.LogInformation($"Hello known user with id {result.Value}");
-        } 
-        else {
-            Guid guid = Guid.NewGuid();
-            await ProtectedLocalStore.SetAsync("id", guid.ToString());
-            Logger.LogInformation($"Hello new user with id {guid}");
-        }
-    }
-
     private async Task OnInputFileChange(InputFileChangeEventArgs e)
     {
         shouldRender = false;
@@ -109,12 +96,9 @@
                 }
                 catch (Exception ex)
                 {
-                    Logger.LogInformation(
-                    "{FileName} not uploaded (Err: 6): {Message}",
-                    file.Name, ex.Message);
+                    Logger.LogInformation("{0} not uploaded (Err: 6): {1}", file.Name, ex.Message);
 
-                    uploadResults.Add(
-                    new()
+                    uploadResults.Add(new()
                         {
                             FileName = file.Name,
                             ErrorCode = 6,

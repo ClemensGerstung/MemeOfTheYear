@@ -1,40 +1,90 @@
 ﻿@page "/todo"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
 @using Grpc.Core
 @using Grpc.Net.Client
-@using GrpcGreeter
-@rendermode InteractiveServer
+@using MemeOfTheYear
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 
-<ul>
-    @foreach (var item in content)
-    {
-        <li>@item</li>
-    }
-</ul>
+@inject ProtectedLocalStorage ProtectedLocalStore
+
+
+<div class="mb-3">
+    <InputCheckbox @bind-Value="isAuthenticated" id="inlineCheckbox1" class="form-check-input" disabled/>
+    <label class="form-check-label" for="inlineCheckbox1">Is Authenticated</label>
+</div>
+
+
+<div class="input-group mb-3">
+    <span class="input-group-text" id="basic-addon3">@questionText:</span>
+    <InputText @bind-Value="answer" class="form-control" aria-describedby="basic-addon3"/>
+</div>
+
+<div class="mb-3">
+    <button @onclick="Answer" class="btn btn-primary" >Submit</button>
+</div>
+
+<div>
+    <label>
+        Answer Correct?
+        <InputCheckbox @bind-Value="correct" />
+    </label>
+</div>
+
 
 @code {
-    private List<string> content = new();
+    private bool isAuthenticated = false;
+    private bool correct = false;
+    private string questionText = "";
+    private string answer = "";
+    private int questionId = -1;
+    private string sessionId = "";
+
+    private GrpcChannel channel;
+    private VoteService.VoteServiceClient voteClient;
+    private ChallengeService.ChallengeServiceClient challengeClient;
 
     protected override async Task OnInitializedAsync()
     {
-        var channel = GrpcChannel.ForAddress("http://localhost:5000");
-        var client = new Greeter.GreeterClient(channel);
+        channel = GrpcChannel.ForAddress("http://localhost:5000");
+        voteClient = new VoteService.VoteServiceClient(channel);
+        challengeClient = new ChallengeService.ChallengeServiceClient(channel);
 
-        _ = Task.Run(async () =>
+        var result = await ProtectedLocalStore.GetAsync<string>("id");
+        Console.WriteLine($"{result.Success} => {result.Value}");
+        var response = await voteClient.InitAsync(new SessionIdRequest
+            {
+                MaxLikes = int.MaxValue,
+                SessionId = result.Value ?? string.Empty
+            });
+
+        Console.WriteLine($"{response.SessionId} => {response.IsAuthenticated}");
+        isAuthenticated = response.IsAuthenticated;
+
+        sessionId = response.SessionId;
+
+        if (!result.Success)
         {
-            try
-            {
-                using var call = client.SayHello(new HelloRequest { Name = "asdf" }, deadline: DateTime.UtcNow.AddSeconds(5));
+            await ProtectedLocalStore.SetAsync("id", response.SessionId);
+        }
 
-                await foreach (var response in call.ResponseStream.ReadAllAsync())
-                {
-                    content.Add(response.Message);
-                    await InvokeAsync(StateHasChanged);
-                }
-            }
-            catch (RpcException ex) when (ex.StatusCode == StatusCode.DeadlineExceeded)
+        if (!response.IsAuthenticated)
+        {
+            var questionResponse = await challengeClient.GetChallengeAsync(new GetChallengeRequest());
+            questionText = questionResponse.QuestionText;
+            questionId = questionResponse.QuestionId;
+        }
+    }
+
+    private async Task Answer()
+    {
+        var response = await challengeClient.AnswerChallengeAsync(new AnswerChallengeRequest
             {
-                // TODO?
-            }
-        });
+                QuestionId = questionId,
+                Answer = answer,
+                SessionId = sessionId
+            });
+
+        correct = response.Success;
     }
 }

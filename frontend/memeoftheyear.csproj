@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Protobuf Include="../HelloWorld.proto" GrpcServices="Client" />
+    <Protobuf Include="../MemeOfTheYear.proto" GrpcServices="Client" />
   </ItemGroup>
 
 </Project>
