@@ -2,41 +2,49 @@ using Microsoft.Extensions.Logging;
 
 public interface IVoteProvider
 {
-    void SetVoting(Session session, Meme image, VoteType type);
+    Task SetVoting(Session session, Meme image, VoteType type);
 
     Meme? GetNextRandomImage(Session session);
 }
 
 class VoteProvider : IVoteProvider
 {
-    private ILogger<VoteProvider> _logger;
-    private IImageProvider _imageProvider;
-    private List<Vote> _votes = new();
+    private List<Vote> _votes;
+    private readonly ILogger<VoteProvider> _logger;
+    private readonly IImageProvider _imageProvider;
+    private readonly IContext _context;
 
-    public VoteProvider(ILogger<VoteProvider> logger, IImageProvider imageProvider)
+    public VoteProvider(ILogger<VoteProvider> logger, IImageProvider imageProvider, IContext context)
     {
         _logger = logger;
         _imageProvider = imageProvider;
+        _context = context;
+
+        _votes = [.. _context.Votes];
     }
 
-    public void SetVoting(Session session, Meme image, VoteType type)
+    public async Task SetVoting(Session session, Meme image, VoteType type)
     {
         // TODO: add staging?
         var index = _votes.FindIndex(x => x.Session == session && x.Meme == image);
 
         if (index == -1)
         {
-            _votes.Add(new Vote
+            var vote =new Vote
             {
                 Session = session,
                 Meme = image,
                 Type = type
-            });
+            };
+            _votes.Add(vote);
+            await _context.AddVote(vote);
         }
         else
         {
             // todo: check, this may only be available on previous type == Skip
             _votes[index].Type = type;
+
+            await _context.UpdateVote(_votes[index]);
         }
     }
 

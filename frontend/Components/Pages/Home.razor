@@ -71,6 +71,7 @@
         var upload = false;
 
         using var content = new MultipartFormDataContent();
+        var result = await ProtectedLocalStore.GetAsync<string>("id");
 
         foreach (var file in e.GetMultipleFiles(maxAllowedFiles))
         {
@@ -83,14 +84,11 @@
                     var stream = new LazyBrowserFileStream(file, maxFileSize);
                     var fileContent = new StreamContent(stream);
 
-                    fileContent.Headers.ContentType =
-                    new MediaTypeHeaderValue(file.ContentType);
+                    fileContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
 
                     Logger.LogInformation($"Append File {file.Name} with {file.ContentType}");
 
-                    content.Add(content: fileContent,
-                    name: "\"files\"",
-                    fileName: file.Name);
+                    content.Add(content: fileContent, name: "\"files\"", fileName: file.Name);
 
                     upload = true;
                 }
@@ -111,10 +109,8 @@
         if (upload)
         {
             var client = ClientFactory.CreateClient();
-
-            var response =
-            await client.PostAsync("http://localhost:5069/Filesave",
-            content);
+            client.DefaultRequestHeaders.Add("session", result.Value);
+            var response = await client.PostAsync("http://localhost:5069/Filesave", content);
 
             if (response.IsSuccessStatusCode)
             {
@@ -123,11 +119,8 @@
                         PropertyNameCaseInsensitive = true,
                     };
 
-                using var responseStream =
-                await response.Content.ReadAsStreamAsync();
-
-                var newUploadResults = await JsonSerializer
-                .DeserializeAsync<IList<UploadResult>>(responseStream, options);
+                using var responseStream = await response.Content.ReadAsStreamAsync();
+                var newUploadResults = await JsonSerializer.DeserializeAsync<IList<UploadResult>>(responseStream, options);
 
                 if (newUploadResults is not null)
                 {
@@ -139,8 +132,7 @@
         shouldRender = true;
     }
 
-    private static bool FileUpload(IList<UploadResult> uploadResults,
-    string? fileName, ILogger<Home> logger, out UploadResult result)
+    private static bool FileUpload(IList<UploadResult> uploadResults, string? fileName, ILogger<Home> logger, out UploadResult result)
     {
         result = uploadResults.SingleOrDefault(f => f.FileName == fileName) ?? new();
 

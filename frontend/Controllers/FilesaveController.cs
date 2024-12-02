@@ -1,7 +1,10 @@
 using System.Net;
 using Microsoft.AspNetCore.Mvc;
-using System.IO;
-using System.Security.Cryptography;
+using Grpc.Net.Client;
+using MemeOfTheYear;
+using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
+using Google.Protobuf.WellKnownTypes;
+using Microsoft.Extensions.Primitives;
 
 [ApiController]
 [Route("[controller]")]
@@ -21,7 +24,14 @@ public class FilesaveController(
         var resourcePath = new Uri($"{Request.Scheme}://{Request.Host}/");
         List<UploadResult> uploadResults = [];
 
-        using SHA256 hasher = SHA256.Create();
+        this.Request.Headers.TryGetValue("session", out StringValues sessionId);
+
+        var channel = GrpcChannel.ForAddress("http://localhost:5000");
+        var imageService = new ImageService.ImageServiceClient(channel);
+        var uploadRequest = new UploadImageRequest
+        {
+            SessionId = sessionId.Single()
+        };
 
         foreach (var file in files)
         {
@@ -51,40 +61,24 @@ public class FilesaveController(
                 {
                     try
                     {
-                        using MemoryStream raw = new MemoryStream();
-                        await file.CopyToAsync(raw);
-
-                        raw.Seek(0, SeekOrigin.Begin);
-                        var hash = await hasher.ComputeHashAsync(raw);
-                        logger.LogInformation($"computed hash ({hash.Length}b) {string.Join("", hash.Select(x => x.ToString("X2")))}");
-
-                        var ext = file.ContentType switch
-                        {
-                            "image/jpeg" => ".jpg",
-                            "image/png" => ".png",
-                            "image/gif" => ".gif",
-                            _ => throw new Exception("AAAAAA")
-                        };
-                        trustedFileNameForFileStorage = Path.GetRandomFileName() + ext;
+                        trustedFileNameForFileStorage = Path.GetRandomFileName();
                         var path = Path.Combine(env.ContentRootPath,
                             env.EnvironmentName, "unsafe_uploads",
                             trustedFileNameForFileStorage);
 
                         var fileInfo = new FileInfo(path);
-                        if (fileInfo.Exists)
-                        {
-                            logger.LogWarning($"{fileInfo} already exists, skipping!");
-                        }
-                        else
-                        {
-                            await using FileStream fs = new(path, FileMode.Create);
 
-                            raw.Seek(0, SeekOrigin.Begin);
-                            await raw.CopyToAsync(fs);
+                        await using FileStream fs = new(path, FileMode.Create);
+                        await file.CopyToAsync(fs);
 
-                            logger.LogInformation("{FileName} saved at {Path}",
-                                trustedFileNameForDisplay, path);
-                        }
+                        logger.LogInformation("{FileName} saved at {Path}",
+                            trustedFileNameForDisplay, path);
+
+                        uploadRequest.Entries.Add(new UploadEntry
+                        {
+                            Filename = trustedFileNameForFileStorage,
+                            MimeType = file.ContentType
+                        });
 
                         uploadResult.Uploaded = true;
                         uploadResult.StoredFileName = trustedFileNameForFileStorage;
@@ -109,6 +103,9 @@ public class FilesaveController(
 
             uploadResults.Add(uploadResult);
         }
+
+        var response = await imageService.UploadImageAsync(uploadRequest);
+        logger.LogInformation("Uploaded {}", string.Join(", ", response.Images.Select(x => $"{x.Id} {x.MimeType}")));
 
         return new CreatedResult(resourcePath, uploadResults);
     }

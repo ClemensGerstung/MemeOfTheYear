@@ -8,9 +8,9 @@ interface IImageProvider
 
     Meme GetImageById(string id);
 
-    Meme CreateNewImage(string hash, string mimeType, Session session);
+    Task<Meme> CreateNewImage(string hash, string mimeType, Session session);
 
-    void UpdateImage(Meme meme);
+    Task UpdateImage(Meme meme);
 
     // TODO: does not belong here...
     string MimeTypeToExtension(string mime);
@@ -18,13 +18,22 @@ interface IImageProvider
     List<Meme> GetAvailableMemes();
 }
 
-class ImageProvider(
-    ILogger<ImageProvider> logger
-) : IImageProvider
+class ImageProvider : IImageProvider
 {
-    public List<Meme> Images {get;} = new();
+    public List<Meme> Images { get; }
 
-    public Meme CreateNewImage(string hash, string mimeType, Session session)
+    private readonly ILogger<ImageProvider> _logger;
+    private readonly IContext _context;
+
+    public ImageProvider(ILogger<ImageProvider> logger, IContext context)
+    {
+        _logger = logger;
+        _context = context;
+
+        Images = [.. _context.Memes];
+    }
+
+    public async Task<Meme> CreateNewImage(string hash, string mimeType, Session session)
     {
         var meme = new Meme
         {
@@ -37,6 +46,7 @@ class ImageProvider(
         };
 
         Images.Add(meme);
+        await _context.AddImage(meme);
 
         return meme;
     }
@@ -48,12 +58,12 @@ class ImageProvider(
 
     public Meme? GetImageByHash(string hash)
     {
-        throw new NotImplementedException();
+        return Images.FirstOrDefault(x => x.Hash == hash);
     }
 
     public Meme GetImageById(string id)
     {
-        throw new NotImplementedException();
+        return Images.First(x => x.Id == id);
     }
 
     public string MimeTypeToExtension(string mime)
@@ -67,8 +77,11 @@ class ImageProvider(
         };
     }
 
-    public void UpdateImage(Meme meme)
+    public async Task UpdateImage(Meme meme)
     {
-        throw new NotImplementedException();
+        var index = Images.FindIndex(x => x.Id == meme.Id);
+        Images[index] = meme;
+
+        await _context.UpdateMeme(meme);
     }
 }

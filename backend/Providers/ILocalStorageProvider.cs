@@ -21,6 +21,14 @@ class LocalStorageProvider : ILocalStorageProvider
         _logger = logger;
         ImagePath = Environment.GetEnvironmentVariable("MEME_OF_THE_YEAR_IMAGES") ?? "/tmp/images";
         _uploadPath = Environment.GetEnvironmentVariable("MEME_OF_THE_YEAR_UPLOAD") ?? "/tmp/upload";
+
+        if(!Directory.Exists(ImagePath)) {
+            Directory.CreateDirectory(ImagePath);
+        }
+
+        if(!Directory.Exists(_uploadPath)) {
+            Directory.CreateDirectory(_uploadPath);
+        }
     }
 
     public string ImagePath { get; }

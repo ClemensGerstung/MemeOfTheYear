@@ -50,7 +50,7 @@ class ImageService(
             Meme? existing = imageProvider.GetImageByHash(hash);
             if (existing == null)
             {
-                existing = imageProvider.CreateNewImage(hash, uploadEntry.MimeType, uploader);
+                existing = await imageProvider.CreateNewImage(hash, uploadEntry.MimeType, uploader);
                 var filename = $"{existing.Id}{imageProvider.MimeTypeToExtension(existing.MimeType)}";
 
                 localStorageProvider.MoveFile(uploadEntry.Filename, filename);
@@ -58,7 +58,7 @@ class ImageService(
             else
             {
                 existing.UploadCount += 1;
-                imageProvider.UpdateImage(existing);
+                await imageProvider.UpdateImage(existing);
             }
 
             response.Images.Add(new Image

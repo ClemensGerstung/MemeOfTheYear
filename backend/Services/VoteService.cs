@@ -19,7 +19,7 @@ class VoteService(
 
         if (session == null)
         {
-            session = sessionProvider.CreateNew();
+            session = await sessionProvider.CreateNew();
         }
         else
         {
@@ -62,7 +62,7 @@ class VoteService(
         var session = sessionProvider.GetSession(request.SessionId)!;
         var image = imageProvider.GetImageById(request.ImageId);
 
-        voteProvider.SetVoting(session, image, type);
+        await voteProvider.SetVoting(session, image, type);
         var nextImage = voteProvider.GetNextRandomImage(session);
 
         return new VoteResponse

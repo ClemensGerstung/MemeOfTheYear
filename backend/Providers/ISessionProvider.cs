@@ -1,40 +1,55 @@
 using Microsoft.Extensions.Logging;
 
-interface ISessionProvider {
+interface ISessionProvider
+{
     Session? GetSession(string id);
 
-    Session CreateNew();
+    Task<Session> CreateNew();
 
     bool IsAllowed(string id);
 
-    void Authenticate(string id);
+    Task Authenticate(string id);
 }
 
-class SessionProvider(
-    ILogger<SessionProvider> logger
-) : ISessionProvider
+class SessionProvider : ISessionProvider
 {
-    private Dictionary<string, Session> _sessions = new();
+    private Dictionary<string, Session> _sessions;
 
-    public void Authenticate(string id)
+    private readonly ILogger<SessionProvider> _logger;
+    private readonly IContext _context;
+
+    public SessionProvider(ILogger<SessionProvider> logger, IContext context)
     {
-        _sessions[id].IsAuthenticated = true;
+        _logger = logger;
+        _context = context;
+
+        _sessions = _context.Sessions.ToDictionary(x => x.Id);
     }
 
-    public Session CreateNew()
+    public async Task Authenticate(string id)
     {
-        var session = new Session {
+        _sessions[id].IsAuthenticated = true;
+
+        await _context.UpdateSession(_sessions[id]);
+    }
+
+    public async Task<Session> CreateNew()
+    {
+        var session = new Session
+        {
             Id = Guid.NewGuid().ToString(),
             IsAuthenticated = false
         };
         _sessions.Add(session.Id, session);
+
+        await _context.AddSession(session);
 
         return session;
     }
 
     public Session? GetSession(string id)
     {
-        if(_sessions.TryGetValue(id, out Session session))
+        if (_sessions.TryGetValue(id, out Session session))
         {
             return session;
         }
