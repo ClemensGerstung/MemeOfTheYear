@@ -13,7 +13,10 @@ class ChallengeService(
         var question = challengeProvider.GetQuestion(request.QuestionId);
         var correct = question?.Answers?.Contains(request.Answer, StringComparer.InvariantCultureIgnoreCase) ?? false;
 
-        sessionProvider.Authenticate(request.SessionId);
+        if (correct)
+        {
+            sessionProvider.Authenticate(request.SessionId);
+        }
 
         return Task.FromResult(new AnswerChallengeResponse
         {

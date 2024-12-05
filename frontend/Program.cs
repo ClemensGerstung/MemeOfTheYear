@@ -9,6 +9,7 @@ builder.Services.AddRazorComponents()
 builder.Services.AddHttpClient();
 
 builder.Services.AddControllersWithViews();
+builder.Services.AddBlazorBootstrap();
 
 var app = builder.Build();
 

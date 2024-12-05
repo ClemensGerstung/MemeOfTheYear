@@ -1,5 +1,11 @@
 public class TodoItem
 {
-    public string? Title { get; set; }
-    public bool IsDone { get; set; } = false;
+    public int QuestionId { get; set; }
+    public string Answer { get; set; } = "";
+    public string SessionId { get; set; } = "";
+
+    public override string ToString()
+    {
+        return $"QuestionId: {QuestionId}, SessionId: {SessionId}, Answer: {Answer}";
+    }
 }

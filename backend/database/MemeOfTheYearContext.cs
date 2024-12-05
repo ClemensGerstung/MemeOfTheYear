@@ -61,6 +61,7 @@ public class MemeOfTheYearContext : DbContext, IContext
     {
         await RunInTransaction(() =>
         {
+            Console.WriteLine($"UpdateSession {session.Id} {session.IsAuthenticated}");
             Sessions.Update(session);
 
             return Task.CompletedTask;
