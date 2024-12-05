@@ -16,7 +16,20 @@
 }
 else
 {
-    <Uploader></Uploader>
+    switch (stage?.Type)
+    {
+        case Stage.Types.Type.Nominate:
+            <Uploader SessionId="@sessionId"></Uploader>
+            break;
+        case Stage.Types.Type.Vote:
+            <Voter SessionId="@sessionId"></Voter>
+            break;
+        case Stage.Types.Type.Result:
+            break;
+        default:
+
+            break;
+    }
 }
 
 @code {
@@ -24,6 +37,8 @@ else
     private string sessionId = "";
 
     private bool showQuestion = true;
+
+    private Stage? stage = null;
 
     private GrpcChannel channel;
     private VoteService.VoteServiceClient voteClient;
@@ -36,15 +51,19 @@ else
         challengeClient = new ChallengeService.ChallengeServiceClient(channel);
 
         var result = await ProtectedLocalStore.GetAsync<string>("id");
-        Console.WriteLine($"{result.Success} => {result.Value}");
         var response = await voteClient.InitAsync(new SessionIdRequest
             {
                 MaxLikes = int.MaxValue,
                 SessionId = result.Value ?? string.Empty
             });
-
-        Console.WriteLine($"{response.SessionId} => {response.IsAuthenticated}");
         sessionId = response.SessionId;
+        stage = response.Stage;
+
+        if (!result.Success)
+        {
+            await ProtectedLocalStore.SetAsync("id", sessionId);
+        }
+
         showQuestion = !response.IsAuthenticated;
         if (showQuestion)
         {
@@ -85,10 +104,6 @@ else
             parameters.Add(nameof(Challenge.OnClickCallback), EventCallback.Factory.Create<TodoItem>(this, OnAnswerClick));
 
             await modal.ShowAsync<Challenge>("Bitte beantworten!", parameters: parameters);
-        }
-        else
-        {
-            await ProtectedLocalStore.SetAsync("id", answer.SessionId);
         }
     }
 }

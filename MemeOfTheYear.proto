@@ -24,6 +24,16 @@ message UploadEntry {
   string mimeType = 2;
 }
 
+message Stage {
+  enum Type {
+    NOMINATE = 0;
+    VOTE = 1;
+    RESULT = 2;
+  }
+  
+  Type type = 1;
+}
+
 message SessionIdRequest {
   string sessionId = 1;  
   int32 maxLikes = 2;
@@ -33,6 +43,7 @@ message SessionIdResponse {
   string sessionId = 1;
   bool isAuthenticated = 2;
   string imageId = 3;
+  Stage stage = 4;
 }
 
 message VoteRequest {

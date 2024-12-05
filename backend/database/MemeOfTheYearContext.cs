@@ -47,6 +47,8 @@ public class MemeOfTheYearContext : DbContext, IContext
         await action();
 
         await transaction.CommitAsync();
+
+        await SaveChangesAsync();
     }
 
     public async Task AddSession(Session session)
@@ -61,7 +63,6 @@ public class MemeOfTheYearContext : DbContext, IContext
     {
         await RunInTransaction(() =>
         {
-            Console.WriteLine($"UpdateSession {session.Id} {session.IsAuthenticated}");
             Sessions.Update(session);
 
             return Task.CompletedTask;

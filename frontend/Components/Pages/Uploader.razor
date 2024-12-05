@@ -5,22 +5,12 @@
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @inject ProtectedLocalStorage ProtectedLocalStore
 @inject IHttpClientFactory ClientFactory
-@inject ILogger<Home> Logger
+@inject ILogger<Uploader> Logger
 
-<PageTitle>Home</PageTitle>
-
-
-<h1>File Upload Example 2</h1>
-
-<p>
-    This example requires a backend server API to function. For more information,
-    see the <em>Upload files to a server</em> section
-    of the <em>ASP.NET Core Blazor file uploads</em> article.
-</p>
 
 <p>
     <label>
-        Upload up to @maxAllowedFiles files:
+        Du kannst bis zu @maxAllowedFiles Memes gleichzeitig hochladen: 
         <InputFile OnChange="OnInputFileChange" multiple accept=".jpg,.jpeg,.gif,.png" />
     </label>
 </p>
@@ -56,12 +46,21 @@
 }
 
 @code {
+
+    [Parameter] public string SessionId { get; set; } = "";
+
     private List<File> files = new();
     private List<UploadResult> uploadResults = new();
     private int maxAllowedFiles = 10;
     private bool shouldRender;
 
     protected override bool ShouldRender() => shouldRender;
+
+    protected override async Task OnInitializedAsync() {
+        await base.OnInitializedAsync();
+
+        Console.WriteLine($"{SessionId}");
+    }
 
     private async Task OnInputFileChange(InputFileChangeEventArgs e)
     {
@@ -131,7 +130,7 @@
         shouldRender = true;
     }
 
-    private static bool FileUpload(IList<UploadResult> uploadResults, string? fileName, ILogger<Home> logger, out UploadResult result)
+    private static bool FileUpload(IList<UploadResult> uploadResults, string? fileName, ILogger<Uploader> logger, out UploadResult result)
     {
         result = uploadResults.SingleOrDefault(f => f.FileName == fileName) ?? new();
 

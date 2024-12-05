@@ -6,14 +6,24 @@ class VoteService(
     ILogger<VoteService> logger,
     ISessionProvider sessionProvider,
     IVoteProvider voteProvider,
-    IImageProvider imageProvider
+    IImageProvider imageProvider,
+    IStageProvider stageProvider
 ) : MemeOfTheYear.VoteService.VoteServiceBase
 {
+
     public override async Task<SessionIdResponse> Init(SessionIdRequest request, ServerCallContext context)
     {
-        Console.WriteLine($"Init: {request}");
+        logger.LogInformation("Init: {}", request);
         string sessionId = request.SessionId;
         string nextImageId = string.Empty;
+        var stage = stageProvider.CurrentStage;
+        var type = stage.Type switch
+        {
+            StageType.Nominate => MemeOfTheYear.Stage.Types.Type.Nominate,
+            StageType.Vote => MemeOfTheYear.Stage.Types.Type.Vote,
+            StageType.Result => MemeOfTheYear.Stage.Types.Type.Result,
+            _ => throw new NotImplementedException(),
+        };
         var session = sessionProvider.GetSession(sessionId);
         Console.WriteLine($"Init: current session {session}");
 
@@ -33,7 +43,10 @@ class VoteService(
         {
             SessionId = session.Id,
             IsAuthenticated = session.IsAuthenticated,
-            ImageId = nextImageId
+            ImageId = nextImageId,
+            Stage = new MemeOfTheYear.Stage {
+                Type = type
+            }
         };
     }
 
