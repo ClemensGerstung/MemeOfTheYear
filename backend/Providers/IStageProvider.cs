@@ -52,26 +52,26 @@ public class StageProvider : IStageProvider
                 Type = StageType.Nominate,
                 EndsAt = DateTime.Now + TimeSpan.FromSeconds(15 * 1)
             },
-            new() {
-                Type = StageType.Vote,
-                EndsAt = DateTime.Now + TimeSpan.FromSeconds(15 * 2.5),
-                Extras = new Dictionary<string, object>
-                {
-                    {"MaxVotes", int.MaxValue}
-                }
-            },
-            new() {
-                Type = StageType.Vote,
-                EndsAt = DateTime.Now + TimeSpan.FromSeconds(15 * 4.5),
-                Extras = new Dictionary<string, object>
-                {
-                    {"MaxVotes", 10}
-                }
-            },
-            new() {
-                Type = StageType.Result,
-                EndsAt = DateTime.Now + TimeSpan.FromSeconds(15 * 5.3)
-            }
+            // new() {
+            //     Type = StageType.Vote,
+            //     EndsAt = DateTime.Now + TimeSpan.FromSeconds(15 * 2.5),
+            //     Extras = new Dictionary<string, object>
+            //     {
+            //         {"MaxVotes", int.MaxValue}
+            //     }
+            // },
+            // new() {
+            //     Type = StageType.Vote,
+            //     EndsAt = DateTime.Now + TimeSpan.FromSeconds(15 * 4.5),
+            //     Extras = new Dictionary<string, object>
+            //     {
+            //         {"MaxVotes", 10}
+            //     }
+            // },
+            // new() {
+            //     Type = StageType.Result,
+            //     EndsAt = DateTime.Now + TimeSpan.FromSeconds(15 * 5.3)
+            // }
         ];
         CurrentStage = Stages[_stageIndex];
 

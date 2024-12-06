@@ -22,7 +22,6 @@ public class FilesaveController(
         long maxFileSize = 15 * 1024 * 1024;
         var filesProcessed = 0;
         var resourcePath = new Uri($"{Request.Scheme}://{Request.Host}/");
-        List<UploadResult> uploadResults = [];
 
         this.Request.Headers.TryGetValue("session", out StringValues sessionId);
 
@@ -35,27 +34,22 @@ public class FilesaveController(
 
         foreach (var file in files)
         {
-            var uploadResult = new UploadResult();
             string trustedFileNameForFileStorage;
             var untrustedFileName = file.FileName;
-            uploadResult.FileName = untrustedFileName;
-            var trustedFileNameForDisplay =
-                WebUtility.HtmlEncode(untrustedFileName);
+            var trustedFileNameForDisplay = WebUtility.HtmlEncode(untrustedFileName);
 
             if (filesProcessed < maxAllowedFiles)
             {
                 if (file.Length == 0)
                 {
-                    logger.LogInformation("{FileName} length is 0 (Err: 1)",
+                    logger.LogInformation("{} length is 0 (Err: 1)",
                         trustedFileNameForDisplay);
-                    uploadResult.ErrorCode = 1;
                 }
                 else if (file.Length > maxFileSize)
                 {
-                    logger.LogInformation("{FileName} of {Length} bytes is " +
-                        "larger than the limit of {Limit} bytes (Err: 2)",
+                    logger.LogInformation("{} of {} bytes is " +
+                        "larger than the limit of {} bytes (Err: 2)",
                         trustedFileNameForDisplay, file.Length, maxFileSize);
-                    uploadResult.ErrorCode = 2;
                 }
                 else
                 {
@@ -71,7 +65,7 @@ public class FilesaveController(
                         await using FileStream fs = new(path, FileMode.Create);
                         await file.CopyToAsync(fs);
 
-                        logger.LogInformation("{FileName} saved at {Path}",
+                        logger.LogInformation("{} saved at {}",
                             trustedFileNameForDisplay, path);
 
                         uploadRequest.Entries.Add(new UploadEntry
@@ -79,15 +73,11 @@ public class FilesaveController(
                             Filename = trustedFileNameForFileStorage,
                             MimeType = file.ContentType
                         });
-
-                        uploadResult.Uploaded = true;
-                        uploadResult.StoredFileName = trustedFileNameForFileStorage;
                     }
                     catch (IOException ex)
                     {
-                        logger.LogError("{FileName} error on upload (Err: 3): {Message}",
+                        logger.LogError("{} error on upload (Err: 3): {}",
                             trustedFileNameForDisplay, ex.Message);
-                        uploadResult.ErrorCode = 3;
                     }
                 }
 
@@ -98,14 +88,18 @@ public class FilesaveController(
                 logger.LogInformation("{FileName} not uploaded because the " +
                     "request exceeded the allowed {Count} of files (Err: 4)",
                     trustedFileNameForDisplay, maxAllowedFiles);
-                uploadResult.ErrorCode = 4;
             }
-
-            uploadResults.Add(uploadResult);
         }
 
         var response = await imageService.UploadImageAsync(uploadRequest);
         logger.LogInformation("Uploaded {}", string.Join(", ", response.Images.Select(x => $"{x.Id} {x.MimeType}")));
+
+        List<UploadResult> uploadResults = response.Images
+                                                    .Select(x => new UploadResult
+                                                    {
+                                                        ImageId = x.Id
+                                                    })
+                                                    .ToList();
 
         return new CreatedResult(resourcePath, uploadResults);
     }

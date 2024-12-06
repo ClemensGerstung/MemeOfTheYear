@@ -1,7 +1,11 @@
+using System.Text.Json;
+
 public class UploadResult
 {
-    public bool Uploaded { get; set; }
-    public string? FileName { get; set; }
-    public string? StoredFileName { get; set; }
-    public int ErrorCode { get; set; }
+    public string ImageId { get; set; } = "";
+
+    public override string ToString()
+    {
+        return JsonSerializer.Serialize(this);
+    }
 }

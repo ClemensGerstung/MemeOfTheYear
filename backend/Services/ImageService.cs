@@ -24,7 +24,7 @@ class ImageService(
 
         return new GetImageResponse
         {
-            ImageContent = content
+            ImageContent = $"data:{image.MimeType};base64, {content}"
         };
     }
 
@@ -47,18 +47,25 @@ class ImageService(
             var hash = Convert.ToBase64String(rawHash);
             fileStream.Close();
 
+            logger.LogDebug("received new file {} with hash {}", uploadEntry.Filename, hash);
+
             Meme? existing = imageProvider.GetImageByHash(hash);
+            logger.LogInformation("Got {} by hash", existing);
             if (existing == null)
             {
                 existing = await imageProvider.CreateNewImage(hash, uploadEntry.MimeType, uploader);
-                var filename = $"{existing.Id}{imageProvider.MimeTypeToExtension(existing.MimeType)}";
+                logger.LogInformation("Created new {}", existing);
 
+                var filename = $"{existing.Id}{imageProvider.MimeTypeToExtension(existing.MimeType)}";
                 localStorageProvider.MoveFile(uploadEntry.Filename, filename);
             }
             else
             {
+                logger.LogDebug("Update upload count to  {}", existing.UploadCount + 1);
                 existing.UploadCount += 1;
                 await imageProvider.UpdateImage(existing);
+
+                // TODO: delete duplicate file in upload folder
             }
 
             response.Images.Add(new Image

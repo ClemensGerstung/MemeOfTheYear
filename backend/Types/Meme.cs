@@ -1,3 +1,6 @@
+
+using System.Text.Json;
+
 public class Meme
 {
     public string Id { get; set; } = "";
@@ -11,4 +14,9 @@ public class Meme
     public int UploadCount { get; set; }
 
     public Session Uploader { get; set; } = new();
+
+    public override string ToString()
+    {
+        return JsonSerializer.Serialize(this);
+    }
 }

@@ -37,11 +37,10 @@ class LocalStorageProvider : ILocalStorageProvider
     {
         var file = new FileInfo(Path.Combine(ImagePath, filename));
         using var stream = file.OpenRead();
-        using var reader = new StreamReader(stream);
+        using var memoryStream = new MemoryStream();
+        await stream.CopyToAsync(memoryStream);
 
-        var content = await reader.ReadToEndAsync();
-
-        reader.Close();
+        var content = Convert.ToBase64String(memoryStream.ToArray());
 
         return content;
     }

@@ -1,114 +1,95 @@
-@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@rendermode InteractiveServer
 
 @using System.Net.Http.Headers
 @using System.Text.Json
+@using BlazorBootstrap
+@using Grpc.Net.Client
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 @inject ProtectedLocalStorage ProtectedLocalStore
 @inject IHttpClientFactory ClientFactory
 @inject ILogger<Uploader> Logger
 
 
-<p>
-    <label>
-        Du kannst bis zu @maxAllowedFiles Memes gleichzeitig hochladen: 
-        <InputFile OnChange="OnInputFileChange" multiple accept=".jpg,.jpeg,.gif,.png" />
-    </label>
-</p>
+<div class="container">
+    <p>
+        <label>
+            Du kannst bis zu @MaxAllowedFiles Memes gleichzeitig hochladen:
+            <InputFile OnChange="OnInputFileChange" multiple accept=".jpg,.jpeg,.gif,.png" />
+        </label>
+    </p>
 
-@if (files.Any())
-{
-    <div class="card">
-    <div class="card-body">
-        <ul>
-            @foreach (var file in files)
-                {
-                    <li>
-                        File: @file.Name
-                        <br>
-                        @if (FileUpload(uploadResults, file.Name, Logger, out var result))
-                        {
-                            <span>
-                                Stored File Name: @result.StoredFileName
-                            </span>
-                        }
-                        else
-                        {
-                            <span>
-                                There was an error uploading the file
-                                (Error: @result.ErrorCode).
-                            </span>
-                        }
-                    </li>
-                }
-            </ul>
+
+    @foreach (var uploadResult in uploadResults)
+    {
+        <div class="row row-cols-auto gy-1">
+            <div class="col-md-5 col-sm-12">
+                <p>@uploadResult.Name</p>
+            </div>
+            <div class="col-md-7 col-sm-12 p-1">
+                <img src="@uploadResult.Content" class="rounded img-fluid" style="max-height: 150px;"/>
+            </div>
         </div>
-    </div>
-}
+    }
+</div>
 
 @code {
 
     [Parameter] public string SessionId { get; set; } = "";
 
-    private List<File> files = new();
-    private List<UploadResult> uploadResults = new();
-    private int maxAllowedFiles = 10;
+    [Parameter] public int MaxAllowedFiles { get; set; } = 10;
+
+    [Parameter] public int MaxFileSize { get; set; } = 15 * 1024 * 1024;
+
+    private List<UploadedImage> uploadResults = new();
+
     private bool shouldRender;
 
     protected override bool ShouldRender() => shouldRender;
 
-    protected override async Task OnInitializedAsync() {
+    protected override async Task OnInitializedAsync()
+    {
         await base.OnInitializedAsync();
 
-        Console.WriteLine($"{SessionId}");
+        Logger.LogInformation("{}", SessionId);
     }
 
     private async Task OnInputFileChange(InputFileChangeEventArgs e)
     {
         shouldRender = false;
-        int maxFileSize = 1024 * 1024 * 15;
         var upload = false;
 
+        List<File> files = new();
         using var content = new MultipartFormDataContent();
-        var result = await ProtectedLocalStore.GetAsync<string>("id");
+        using var channel = GrpcChannel.ForAddress("http://localhost:5000");
+        var imageService = new MemeOfTheYear.ImageService.ImageServiceClient(channel);
 
-        foreach (var file in e.GetMultipleFiles(maxAllowedFiles))
+        foreach (var file in e.GetMultipleFiles(MaxAllowedFiles))
         {
-            if (uploadResults.SingleOrDefault(f => f.FileName == file.Name) is null)
+            try
             {
-                try
-                {
-                    files.Add(new() { Name = file.Name });
+                Logger.LogInformation($"Append File {file.Name} with {file.ContentType}");
 
-                    var stream = new LazyBrowserFileStream(file, maxFileSize);
-                    var fileContent = new StreamContent(stream);
+                files.Add(new() { Name = file.Name });
 
-                    fileContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+                var stream = new LazyBrowserFileStream(file, MaxFileSize);
+                var fileContent = new StreamContent(stream);
+                fileContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+                content.Add(content: fileContent, name: "\"files\"", fileName: file.Name);
 
-                    Logger.LogInformation($"Append File {file.Name} with {file.ContentType}");
-
-                    content.Add(content: fileContent, name: "\"files\"", fileName: file.Name);
-
-                    upload = true;
-                }
-                catch (Exception ex)
-                {
-                    Logger.LogInformation("{0} not uploaded (Err: 6): {1}", file.Name, ex.Message);
-
-                    uploadResults.Add(new()
-                        {
-                            FileName = file.Name,
-                            ErrorCode = 6,
-                            Uploaded = false
-                        });
-                }
+                upload = true;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning("{0} not uploaded (Err: 6): {1}", file.Name, ex.Message);
             }
         }
 
         if (upload)
         {
-            var client = ClientFactory.CreateClient();
-            client.DefaultRequestHeaders.Add("session", result.Value);
-            var response = await client.PostAsync("http://localhost:5069/Filesave", content);
+            using var client = ClientFactory.CreateClient();
+            client.DefaultRequestHeaders.Add("session", SessionId);
+            using var response = await client.PostAsync("http://localhost:5069/Filesave", content);
+            Logger.LogInformation("Is success {}", response.IsSuccessStatusCode);
 
             if (response.IsSuccessStatusCode)
             {
@@ -119,10 +100,25 @@
 
                 using var responseStream = await response.Content.ReadAsStreamAsync();
                 var newUploadResults = await JsonSerializer.DeserializeAsync<IList<UploadResult>>(responseStream, options);
+                Logger.LogInformation("{}", newUploadResults);
 
                 if (newUploadResults is not null)
                 {
-                    uploadResults = uploadResults.Concat(newUploadResults).ToList();
+                    uploadResults.Clear();
+
+                    foreach (var result in newUploadResults)
+                    {
+                        var imageResponse = await imageService.GetImageAsync(new MemeOfTheYear.GetImageRequest
+                            {
+                                ImageId = result.ImageId,
+                                SessionId = this.SessionId
+                            });
+                        uploadResults.Add(new UploadedImage
+                            {
+                                Name = result.ImageId,
+                                Content = imageResponse.ImageContent
+                            });
+                    }
                 }
             }
         }
@@ -130,21 +126,14 @@
         shouldRender = true;
     }
 
-    private static bool FileUpload(IList<UploadResult> uploadResults, string? fileName, ILogger<Uploader> logger, out UploadResult result)
-    {
-        result = uploadResults.SingleOrDefault(f => f.FileName == fileName) ?? new();
-
-        if (!result.Uploaded)
-        {
-            logger.LogInformation("{FileName} not uploaded (Err: 5)", fileName);
-            result.ErrorCode = 5;
-        }
-
-        return result.Uploaded;
-    }
-
     private class File
     {
         public string? Name { get; set; }
+    }
+
+    private class UploadedImage
+    {
+        public string Name { get; set; } = "";
+        public string Content { get; set; } = "";
     }
 }
