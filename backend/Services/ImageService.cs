@@ -20,6 +20,7 @@ class ImageService(
 
         var image = imageProvider.GetImageById(request.ImageId);
         var filename = $"{image.Id}{imageProvider.MimeTypeToExtension(image.MimeType)}";
+        logger.LogDebug("try get {}", filename);
         var content = await localStorageProvider.GetFileContent(filename);
 
         return new GetImageResponse

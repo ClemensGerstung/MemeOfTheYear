@@ -10,7 +10,7 @@
 @inject ProtectedLocalStorage ProtectedLocalStore
 @inject ILogger<Home> Logger
 
-<div class="container-fluid fill">
+<div class="container-fluid fill" style="height: 100%;">
     <div class="h-25 row text-center align-items-center">
         <h1>Maimai des Jahres</h1>
     </div>
@@ -28,7 +28,7 @@
                 <Uploader SessionId="@sessionId"></Uploader>
                 break;
             case Stage.Types.Type.Vote:
-                <Voter SessionId="@sessionId"></Voter>
+                <Voter SessionId="@sessionId" FirstImage="@imageId"></Voter>
                 break;
             case Stage.Types.Type.Result:
                 break;
@@ -43,6 +43,7 @@
 @code {
     private Modal modal = default!;
     private string sessionId = "";
+    private string imageId = "";
 
     private bool showQuestion = true;
 
@@ -66,6 +67,7 @@
             });
         sessionId = response.SessionId;
         stage = response.Stage;
+        imageId = response.ImageId;
 
         if (!result.Success)
         {

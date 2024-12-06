@@ -48,18 +48,18 @@ public class StageProvider : IStageProvider
 
         Stages =
         [
-            new() {
-                Type = StageType.Nominate,
-                EndsAt = DateTime.Now + TimeSpan.FromSeconds(15 * 1)
-            },
             // new() {
-            //     Type = StageType.Vote,
-            //     EndsAt = DateTime.Now + TimeSpan.FromSeconds(15 * 2.5),
-            //     Extras = new Dictionary<string, object>
-            //     {
-            //         {"MaxVotes", int.MaxValue}
-            //     }
+            //     Type = StageType.Nominate,
+            //     EndsAt = DateTime.Now + TimeSpan.FromSeconds(15 * 1)
             // },
+            new() {
+                Type = StageType.Vote,
+                EndsAt = DateTime.Now + TimeSpan.FromSeconds(15 * 2.5),
+                Extras = new Dictionary<string, object>
+                {
+                    {"MaxVotes", int.MaxValue}
+                }
+            },
             // new() {
             //     Type = StageType.Vote,
             //     EndsAt = DateTime.Now + TimeSpan.FromSeconds(15 * 4.5),
