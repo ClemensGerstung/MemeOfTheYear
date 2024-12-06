@@ -1,0 +1,137 @@
+@page "/Admin"
+
+@using BlazorBootstrap
+@using Grpc.Net.Client
+@using MemeOfTheYear
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+@inject ProtectedLocalStorage ProtectedLocalStore
+@inject ILogger<Admin> Logger
+
+@if (hasSession)
+{
+    <div class="table-responsive">
+    <table class="table table-hover table-striped">
+        <thead>
+            <tr>
+                <th scope="col">#</th>
+                <th scope="col">Id</th>
+                <th scope="col">Hash</th>
+                <th scope="col">MimeType</th>
+                <th scope="col">Uploaded</th>
+                <th scope="col">Likes</th>
+                <th scope="col">Dislikes</th>
+                <th scope="col">Enabled</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var image in images)
+                {
+                    <tr>
+                        <td class="w-25">
+                            <Image Src="@image.ImageContent" style="min-width:150px;width:150px"
+                                Class="img-fluid img-thumbnail" />
+                        </td>
+                        <td>@image.Id</td>
+                        <td>@image.Hash</td>
+                        <td>@image.MimeType</td>
+                        <td>@image.UploadCount</td>
+                        <td>@image.Likes</td>
+                        <td>@image.Dislikes</td>
+                        <td>
+                            <InputCheckbox @bind-Value="image.IsEnabled"
+                                @bind-Value:after="() => UpdateEnabled(image.Id, image.IsEnabled)" />
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private bool hasSession = false;
+
+    private List<DisplayableImage> images = [];
+    private string sessionId = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        using var channel = GrpcChannel.ForAddress("http://localhost:5000", new GrpcChannelOptions
+            {
+                MaxReceiveMessageSize = 6 * 1024 * 1024,
+                MaxSendMessageSize = 6 * 1024 * 1024
+            });
+        var voteClient = new VoteService.VoteServiceClient(channel);
+        var imageClient = new ImageService.ImageServiceClient(channel);
+
+        var result = await ProtectedLocalStore.GetAsync<string>("id");
+        var response = await voteClient.InitAsync(new SessionIdRequest
+            {
+                MaxLikes = int.MaxValue,
+                SessionId = result.Value ?? string.Empty
+            });
+
+        sessionId = response.SessionId;
+        hasSession = response.IsAuthenticated;
+        if (hasSession)
+        {
+            var imagesResponse = await imageClient.GetAllImagesAsync(new GetImagesRequest { SessionId = response.SessionId });
+            foreach (var image in imagesResponse.Images)
+            {
+                var imageContentResponse = await imageClient.GetImageAsync(new GetImageRequest
+                    {
+                        SessionId = response.SessionId,
+                        ImageId = image.Id
+                    });
+
+                images.Add(new DisplayableImage
+                    {
+                        Id = image.Id,
+                        Hash = image.Hash,
+                        ImageContent = imageContentResponse.ImageContent,
+                        IsEnabled = image.Enabled,
+                        UploadCount = image.Uploaded,
+                        Likes = image.Likes,
+                        Dislikes = image.Dislikes,
+                    });
+            }
+        }
+    }
+
+    private async Task UpdateEnabled(string imageId, bool enabled)
+    {
+        using var channel = GrpcChannel.ForAddress("http://localhost:5000");
+        var adminClient = new AdminService.AdminServiceClient(channel);
+
+        var response = await adminClient.SetImageEnabledAsync(new SetImageEnabledRequest
+            {
+                SessionId = sessionId,
+                ImageId = imageId,
+                Enabled = enabled
+            });
+
+        Logger.LogInformation("Changed state of image {}", imageId);
+    }
+
+    private class DisplayableImage
+    {
+        public string Id { get; set; } = "";
+
+        public string Hash { get; set; } = "";
+
+        public bool IsEnabled { get; set; } = true;
+
+        public string MimeType { get; set; } = "";
+
+        public int UploadCount { get; set; }
+
+        public string ImageContent { get; set; } = "";
+        public int Likes { get; set; }
+        public int Dislikes { get; set; }
+    }
+}

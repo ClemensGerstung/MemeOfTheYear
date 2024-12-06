@@ -1,9 +1,7 @@
 using Grpc.Core;
 using MemeOfTheYear;
-using Microsoft.Extensions.Logging;
 
 class ChallengeService(
-    ILogger<ChallengeService> logger,
     ISessionProvider sessionProvider,
     IChallengeProvider challengeProvider
 ) : MemeOfTheYear.ChallengeService.ChallengeServiceBase

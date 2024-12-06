@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
 
-interface IImageProvider
+public interface IImageProvider
 {
     List<Meme> Images { get; }
 

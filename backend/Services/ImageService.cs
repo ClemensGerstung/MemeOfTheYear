@@ -8,9 +8,34 @@ class ImageService(
     ILogger<ImageService> logger,
     ILocalStorageProvider localStorageProvider,
     IImageProvider imageProvider,
-    ISessionProvider sessionProvider
+    ISessionProvider sessionProvider,
+    IVoteProvider voteProvider
 ) : MemeOfTheYear.ImageService.ImageServiceBase
 {
+    public override Task<GetImagesResponse> GetAllImages(GetImagesRequest request, ServerCallContext context)
+    {
+        var response = new GetImagesResponse();
+        
+        foreach(var image in imageProvider.Images)
+        {
+            var likes = voteProvider.GetVoteCount(image.Id, VoteType.Like);
+            var dislikes = voteProvider.GetVoteCount(image.Id, VoteType.Dislike);
+
+            response.Images.Add(new Image
+            {
+                Id = image.Id,
+                Hash = image.Hash,
+                Enabled = image.IsEnabled,
+                MimeType = image.MimeType,
+                Uploaded = image.UploadCount,
+                Likes = likes,
+                Dislikes = dislikes
+            });
+        }
+
+        return Task.FromResult(response);
+    }
+
     public override async Task<GetImageResponse> GetImage(GetImageRequest request, ServerCallContext context)
     {
         if (!sessionProvider.IsAllowed(request.SessionId))

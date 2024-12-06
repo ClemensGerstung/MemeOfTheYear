@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
 
-interface ISessionProvider
+public interface ISessionProvider
 {
     Session? GetSession(string id);
 
@@ -49,7 +49,7 @@ class SessionProvider : ISessionProvider
 
     public Session? GetSession(string id)
     {
-        if (_sessions.TryGetValue(id, out Session session))
+        if (_sessions.TryGetValue(id, out Session? session))
         {
             return session;
         }

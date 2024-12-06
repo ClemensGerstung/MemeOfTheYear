@@ -5,6 +5,8 @@ public interface IVoteProvider
     Task SetVoting(Session session, Meme image, VoteType type);
 
     Meme? GetNextRandomImage(Session session);
+
+    int GetVoteCount(string imageId, VoteType type);
 }
 
 class VoteProvider : IVoteProvider
@@ -64,5 +66,10 @@ class VoteProvider : IVoteProvider
 
 
         return null;
+    }
+
+    public int GetVoteCount(string imageId, VoteType type)
+    {
+        return _votes.Where(x => x.Type == type).Count(x => x.Meme.Id == imageId);
     }
 }
