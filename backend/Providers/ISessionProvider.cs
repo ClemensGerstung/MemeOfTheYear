@@ -1,64 +1,15 @@
-using Microsoft.Extensions.Logging;
+using MemeOfTheYear.Types;
 
-public interface ISessionProvider
+namespace MemeOfTheYear.Providers
 {
-    Session? GetSession(string id);
-
-    Task<Session> CreateNew();
-
-    bool IsAllowed(string id);
-
-    Task Authenticate(string id);
-}
-
-class SessionProvider : ISessionProvider
-{
-    private Dictionary<string, Session> _sessions;
-
-    private readonly ILogger<SessionProvider> _logger;
-    private readonly IContext _context;
-
-    public SessionProvider(ILogger<SessionProvider> logger, IContext context)
+    public interface ISessionProvider
     {
-        _logger = logger;
-        _context = context;
+        Session? GetSession(string id);
 
-        _sessions = _context.Sessions.ToDictionary(x => x.Id);
-    }
+        Task<Session> CreateNew();
 
-    public async Task Authenticate(string id)
-    {
-        _sessions[id].IsAuthenticated = true;
+        bool IsAllowed(string id);
 
-        await _context.UpdateSession(_sessions[id]);
-    }
-
-    public async Task<Session> CreateNew()
-    {
-        var session = new Session
-        {
-            Id = Guid.NewGuid().ToString(),
-            IsAuthenticated = false
-        };
-        _sessions.Add(session.Id, session);
-
-        await _context.AddSession(session);
-
-        return session;
-    }
-
-    public Session? GetSession(string id)
-    {
-        if (_sessions.TryGetValue(id, out Session? session))
-        {
-            return session;
-        }
-
-        return null;
-    }
-
-    public bool IsAllowed(string id)
-    {
-        return GetSession(id)?.IsAuthenticated ?? false;
+        Task Authenticate(string id);
     }
 }

@@ -1,17 +1,13 @@
-public class Vote
+namespace MemeOfTheYear.Types
 {
-    public int Id { get; set; }
-    
-    public Session Session { get; set; } = new();
+    public class Vote
+    {
+        public int Id { get; set; }
 
-    public Meme Meme { get; set; } = new();
+        public Session Session { get; set; } = new();
 
-    public VoteType Type { get; set; }
-}
+        public Image Image { get; set; } = new();
 
-public enum VoteType
-{
-    Like,
-    Dislike,
-    Skip
+        public VoteType Type { get; set; }
+    }
 }

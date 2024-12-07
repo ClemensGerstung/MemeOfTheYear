@@ -1,6 +1,9 @@
 ﻿
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using MemeOfTheYear.Providers;
+using MemeOfTheYear.Services;
+using MemeOfTheYear.Database;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,11 +29,11 @@ if (provider is not null)
 
 app.Services.GetService<IStageProvider>()?.StartTracking();
 
-app.MapGrpcService<ImageService>();
-app.MapGrpcService<VoteService>();
-app.MapGrpcService<ChallengeService>();
-app.MapGrpcService<AdminService>();
-app.MapGrpcService<ResultService>();
+app.MapGrpcService<ImageServiceImpl>();
+app.MapGrpcService<VoteServiceImpl>();
+app.MapGrpcService<ChallengeServiceImpl>();
+app.MapGrpcService<AdminServiceImpl>();
+app.MapGrpcService<ResultServiceImpl>();
 app.MapGet("/", () => "Communication with gRPC endpoints must be made through a gRPC client");
 
 app.Run();

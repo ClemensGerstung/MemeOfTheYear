@@ -1,7 +1,6 @@
 using System.Net;
 using Microsoft.AspNetCore.Mvc;
-using Grpc.Net.Client;
-using MemeOfTheYear;
+using MemeOfTheYear.Remote;
 using Microsoft.Extensions.Primitives;
 
 [ApiController]

@@ -1,6 +1,6 @@
 syntax="proto3";
 
-option csharp_namespace = "MemeOfTheYear";
+option csharp_namespace = "MemeOfTheYear.Remote";
 
 package memeoftheyear;
 

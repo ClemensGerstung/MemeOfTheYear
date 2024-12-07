@@ -4,6 +4,7 @@
 @using System.Text.Json
 @using BlazorBootstrap
 @using Grpc.Net.Client
+@using MemeOfTheYear.Remote
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
 
 @inject ProtectedLocalStorage ProtectedLocalStore
@@ -63,7 +64,7 @@
         List<File> files = new();
         using var content = new MultipartFormDataContent();
 
-        var imageService = ClientProvider.GetClient<MemeOfTheYear.ImageService.ImageServiceClient>();
+        var imageService = ClientProvider.GetClient<ImageService.ImageServiceClient>();
 
         foreach (var file in e.GetMultipleFiles(MaxAllowedFiles))
         {
@@ -110,7 +111,7 @@
 
                     foreach (var result in newUploadResults)
                     {
-                        var imageResponse = await imageService.GetImageAsync(new MemeOfTheYear.GetImageRequest
+                        var imageResponse = await imageService.GetImageAsync(new GetImageRequest
                             {
                                 ImageId = result.ImageId,
                                 SessionId = this.SessionId

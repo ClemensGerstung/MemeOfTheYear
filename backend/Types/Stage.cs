@@ -2,13 +2,13 @@ using System.Text.Json;
 
 namespace MemeOfTheYear.Types
 {
-    public class Question
+    public class Stage
     {
-        public int Id { get; set; }
+        public StageType Type { get; set; }
 
-        public string Text { get; set; } = "";
+        public DateTime EndsAt { get; set; }
 
-        public List<string> Answers { get; set; } = new();
+        public Dictionary<string, object> Extras { get; set; } = new();
 
         public override string ToString()
         {

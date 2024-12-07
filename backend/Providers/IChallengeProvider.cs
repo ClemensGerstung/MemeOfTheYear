@@ -1,39 +1,13 @@
-using System.Text.Json;
-using Microsoft.Extensions.Logging;
+using MemeOfTheYear.Types;
 
-public interface IChallengeProvider
+namespace MemeOfTheYear.Providers
 {
-    Task SetupQuestions();
-
-    Question GetRandomQuestion();
-
-    Question? GetQuestion(int id);
-}
-
-class ChallengeProvider(ILogger<ChallengeProvider> logger, ILocalStorageProvider localStorageProvider) : IChallengeProvider
-{
-    private readonly ILogger<ChallengeProvider> _logger = logger;
-
-    private List<Question> _questions = [];
-
-    public async Task SetupQuestions()
+    public interface IChallengeProvider
     {
-        _questions = await localStorageProvider.GetConfigAsync<List<Question>>("questions.json");
-        _logger.LogInformation("Questions: {}", JsonSerializer.Serialize(_questions));
-    }
+        Task SetupQuestions();
 
-    public Question? GetQuestion(int id)
-    {
-        return _questions.FirstOrDefault(q => q.Id == id);
-    }
+        Question GetRandomQuestion();
 
-    public Question GetRandomQuestion()
-    {
-        var random = new Random();
-        var index = random.Next(_questions.Count);
-
-        _logger.LogDebug("Return random question {}", _questions[index]);
-
-        return _questions[index];
+        Question? GetQuestion(int id);
     }
 }
