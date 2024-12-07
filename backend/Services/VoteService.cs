@@ -25,7 +25,7 @@ class VoteService(
             _ => throw new NotImplementedException(),
         };
         var session = sessionProvider.GetSession(sessionId);
-        Console.WriteLine($"Init: current session {session}");
+        logger.LogInformation("Init: current session {}", session);
 
         if (session == null)
         {
@@ -37,14 +37,15 @@ class VoteService(
             nextImageId = meme?.Id ?? String.Empty;
         }
 
-        Console.WriteLine($"Init: current session {session.Id}");
+        logger.LogInformation("Init: current session {}", session.Id);
 
         return new SessionIdResponse
         {
             SessionId = session.Id,
             IsAuthenticated = session.IsAuthenticated,
             ImageId = nextImageId,
-            Stage = new MemeOfTheYear.Stage {
+            Stage = new MemeOfTheYear.Stage
+            {
                 Type = type
             }
         };
@@ -73,16 +74,30 @@ class VoteService(
         }
 
         var session = sessionProvider.GetSession(request.SessionId)!;
-        var image = imageProvider.GetImageById(request.ImageId);
 
-        await voteProvider.SetVoting(session, image, type);
-        var nextImage = voteProvider.GetNextRandomImage(session);
+        if (!string.IsNullOrWhiteSpace(request.ImageId))
+        {
+            var image = imageProvider.GetImageById(request.ImageId);
+
+            await voteProvider.SetVoting(session, image, type);
+        }
+
+        stageProvider.CurrentStage.Extras.TryGetValue("MaxVotes", out object? maxVotes);
+        var allowedMaxVotes = maxVotes as int? ?? int.MaxValue;
+        var sessionVotes = voteProvider.GetSessionVotes(request.SessionId);
+        string nextImageId = string.Empty;
+
+        if (sessionVotes <= allowedMaxVotes)
+        {
+            var nextImage = voteProvider.GetNextRandomImage(session);
+            nextImageId = nextImage?.Id ?? string.Empty;
+        }
 
         return new VoteResponse
         {
-            Finished = nextImage == null,
-            NextImageId = nextImage?.Id ?? string.Empty,
-            RemainingLikes = int.MaxValue
+            Finished = string.IsNullOrWhiteSpace(nextImageId),
+            NextImageId = nextImageId,
+            RemainingLikes = allowedMaxVotes - sessionVotes
         };
     }
 }

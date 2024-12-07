@@ -24,7 +24,7 @@ public class FilesaveController(
         var resourcePath = new Uri($"{Request.Scheme}://{Request.Host}/");
 
         this.Request.Headers.TryGetValue("session", out StringValues sessionId);
-
+        
         var channel = GrpcChannel.ForAddress("http://localhost:5000");
         var imageService = new ImageService.ImageServiceClient(channel);
         var uploadRequest = new UploadImageRequest
@@ -56,6 +56,8 @@ public class FilesaveController(
                     try
                     {
                         trustedFileNameForFileStorage = Path.GetRandomFileName();
+
+                        // TODO: replace with env
                         var path = Path.Combine(env.ContentRootPath,
                             env.EnvironmentName, "unsafe_uploads",
                             trustedFileNameForFileStorage);

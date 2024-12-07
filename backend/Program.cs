@@ -26,6 +26,7 @@ app.MapGrpcService<ImageService>();
 app.MapGrpcService<VoteService>();
 app.MapGrpcService<ChallengeService>();
 app.MapGrpcService<AdminService>();
+app.MapGrpcService<ResultService>();
 app.MapGet("/", () => "Communication with gRPC endpoints must be made through a gRPC client");
 
 app.Run();

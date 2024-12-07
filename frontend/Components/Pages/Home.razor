@@ -31,9 +31,10 @@
                 <Voter SessionId="@sessionId" FirstImage="@imageId"></Voter>
                 break;
             case Stage.Types.Type.Result:
+                <Result SessionId="@sessionId" ></Result>
                 break;
             default:
-
+                <p>Wow, such empty here!</p>
                 break;
         }
     }
@@ -49,9 +50,9 @@
 
     private Stage? stage = null;
 
-    private GrpcChannel channel;
-    private VoteService.VoteServiceClient voteClient;
-    private ChallengeService.ChallengeServiceClient challengeClient;
+    private GrpcChannel? channel = null;
+    private VoteService.VoteServiceClient? voteClient = null;
+    private ChallengeService.ChallengeServiceClient? challengeClient = null;
 
     protected override async Task OnInitializedAsync()
     {
@@ -91,6 +92,12 @@
 
     private async Task OnAnswerClick(TodoItem answer)
     {
+        if (challengeClient is null || voteClient is null)
+        {
+            Logger.LogError("Not connected to GRPC service!");
+            return;
+        }
+
         Logger.LogDebug("got item {}", answer);
 
         var response = await challengeClient.AnswerChallengeAsync(new AnswerChallengeRequest
@@ -114,6 +121,14 @@
             parameters.Add(nameof(Challenge.OnClickCallback), EventCallback.Factory.Create<TodoItem>(this, OnAnswerClick));
 
             await modal.ShowAsync<Challenge>("Bitte beantworten!", parameters: parameters);
+        }
+        else
+        {
+            var nextImageResponse = await voteClient.SkipAsync(new VoteRequest { SessionId = answer.SessionId });
+            if (!nextImageResponse.Finished)
+            {
+                imageId = nextImageResponse.NextImageId;
+            }
         }
     }
 }

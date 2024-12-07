@@ -7,6 +7,8 @@ public interface IVoteProvider
     Meme? GetNextRandomImage(Session session);
 
     int GetVoteCount(string imageId, VoteType type);
+
+    int GetSessionVotes(string sessionId);
 }
 
 class VoteProvider : IVoteProvider
@@ -27,7 +29,6 @@ class VoteProvider : IVoteProvider
 
     public async Task SetVoting(Session session, Meme image, VoteType type)
     {
-        // TODO: add staging?
         var index = _votes.FindIndex(x => x.Session == session && x.Meme == image);
 
         if (index == -1)
@@ -71,5 +72,10 @@ class VoteProvider : IVoteProvider
     public int GetVoteCount(string imageId, VoteType type)
     {
         return _votes.Where(x => x.Type == type).Count(x => x.Meme.Id == imageId);
+    }
+
+    public int GetSessionVotes(string sessionId)
+    {
+        return _votes.Count(x => x.Session.Id == sessionId);
     }
 }

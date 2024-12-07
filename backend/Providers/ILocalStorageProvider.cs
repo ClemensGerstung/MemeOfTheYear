@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
 
-interface ILocalStorageProvider
+public interface ILocalStorageProvider
 {
     string ImagePath { get; }
 

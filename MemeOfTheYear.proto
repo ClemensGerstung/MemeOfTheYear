@@ -91,7 +91,7 @@ message GetVotedImagesRequest {
 }
 
 message GetVotedImagesResponse {
-  repeated VoteEntry entries = 1;
+  repeated Image images = 1;
 }
 
 message GetImagesRequest {
@@ -109,6 +109,16 @@ message UploadImageRequest {
 
 message UploadImageResponse {
   repeated Image images = 1;
+}
+
+message SetImageEnabledRequest {
+  string sessionId = 1;
+  string imageId = 2;
+  bool enabled = 3;
+}
+
+message SetImageEnabledResponse {
+
 }
 
 service VoteService {
@@ -134,10 +144,8 @@ service ImageService {
 
 service ResultService {
   rpc GetMostLikedImages(GetVotedImagesRequest) returns (GetVotedImagesResponse);
-  rpc GetMostDislikedImages(GetVotedImagesRequest) returns (GetVotedImagesResponse);
-  rpc GetMostSkippedImages(GetVotedImagesRequest) returns (GetVotedImagesResponse);
 }
 
 service AdminService {
-
+  rpc SetImageEnabled(SetImageEnabledRequest) returns (SetImageEnabledResponse);
 }
