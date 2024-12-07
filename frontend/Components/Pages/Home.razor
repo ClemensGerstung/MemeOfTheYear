@@ -9,6 +9,7 @@
 
 @inject ProtectedLocalStorage ProtectedLocalStore
 @inject ILogger<Home> Logger
+@inject IGrpcClientProvider ClientProvider
 
 <div class="container-fluid fill" style="height: 100%;">
     <div class="h-25 row text-center align-items-center">
@@ -50,15 +51,10 @@
 
     private Stage? stage = null;
 
-    private GrpcChannel? channel = null;
-    private VoteService.VoteServiceClient? voteClient = null;
-    private ChallengeService.ChallengeServiceClient? challengeClient = null;
-
     protected override async Task OnInitializedAsync()
     {
-        channel = GrpcChannel.ForAddress("http://localhost:5000");
-        voteClient = new VoteService.VoteServiceClient(channel);
-        challengeClient = new ChallengeService.ChallengeServiceClient(channel);
+        var voteClient = ClientProvider.GetClient<VoteService.VoteServiceClient>();
+        var challengeClient = ClientProvider.GetClient<ChallengeService.ChallengeServiceClient>();
 
         var result = await ProtectedLocalStore.GetAsync<string>("id");
         var response = await voteClient.InitAsync(new SessionIdRequest
@@ -94,11 +90,8 @@
 
     private async Task OnAnswerClick(TodoItem answer)
     {
-        if (challengeClient is null || voteClient is null)
-        {
-            Logger.LogError("Not connected to GRPC service!");
-            return;
-        }
+        var voteClient = ClientProvider.GetClient<VoteService.VoteServiceClient>();
+        var challengeClient = ClientProvider.GetClient<ChallengeService.ChallengeServiceClient>();
 
         Logger.LogDebug("got item {}", answer);
 

@@ -7,8 +7,6 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddGrpc(opt =>
     {
         opt.EnableDetailedErrors = true;
-        opt.MaxReceiveMessageSize = 6 * 1024 * 1024;
-        opt.MaxSendMessageSize = 6 * 1024 * 1024;
     });
 builder.Services.AddSingleton<ILocalStorageProvider, LocalStorageProvider>();
 builder.Services.AddSingleton<ISessionProvider, SessionProvider>();

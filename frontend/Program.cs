@@ -2,6 +2,8 @@ using memeoftheyear.Components;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddSingleton<IGrpcClientProvider, GrpcClientProvider>();
+
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();

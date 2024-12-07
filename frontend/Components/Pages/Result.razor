@@ -5,6 +5,7 @@
 @rendermode InteractiveServer
 
 @inject ILogger<Result> Logger
+@inject IGrpcClientProvider ClientProvider
 
 <div class="h-50 row text-center">
     <div class="col h-100">
@@ -49,9 +50,8 @@
 
         Logger.LogInformation("{}", SessionId);
 
-        using var channel = GrpcChannel.ForAddress("http://localhost:5000");
-        var resultClient = new ResultService.ResultServiceClient(channel);
-        var imageClient = new ImageService.ImageServiceClient(channel);
+        var resultClient = ClientProvider.GetClient<ResultService.ResultServiceClient>();
+        var imageClient = ClientProvider.GetClient<ImageService.ImageServiceClient>();
 
         var response = await resultClient.GetMostLikedImagesAsync(new GetVotedImagesRequest
             {

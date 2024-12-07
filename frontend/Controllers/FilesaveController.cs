@@ -2,31 +2,30 @@ using System.Net;
 using Microsoft.AspNetCore.Mvc;
 using Grpc.Net.Client;
 using MemeOfTheYear;
-using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
-using Google.Protobuf.WellKnownTypes;
 using Microsoft.Extensions.Primitives;
 
 [ApiController]
 [Route("[controller]")]
 public class FilesaveController(
-    IHostEnvironment env,
-    ILogger<FilesaveController> logger
+    ILogger<FilesaveController> logger,
+    IGrpcClientProvider grpcClient
 ) : ControllerBase
 {
+    private string _uploadPath = Environment.GetEnvironmentVariable("MEME_OF_THE_YEAR_UPLOAD") ?? "/tmp/upload";
+
     [HttpPost]
     public async Task<ActionResult<IList<UploadResult>>> PostFile([FromForm] IEnumerable<IFormFile> files)
     {
         logger.LogInformation("Post File ...");
 
         var maxAllowedFiles = 10;
-        long maxFileSize = 15 * 1024 * 1024;
+        long maxFileSize = 1 * 1024 * 1024;
         var filesProcessed = 0;
         var resourcePath = new Uri($"{Request.Scheme}://{Request.Host}/");
 
         this.Request.Headers.TryGetValue("session", out StringValues sessionId);
-        
-        var channel = GrpcChannel.ForAddress("http://localhost:5000");
-        var imageService = new ImageService.ImageServiceClient(channel);
+
+        var imageService = grpcClient.GetClient<ImageService.ImageServiceClient>();
         var uploadRequest = new UploadImageRequest
         {
             SessionId = sessionId.Single()
@@ -47,8 +46,7 @@ public class FilesaveController(
                 }
                 else if (file.Length > maxFileSize)
                 {
-                    logger.LogInformation("{} of {} bytes is " +
-                        "larger than the limit of {} bytes (Err: 2)",
+                    logger.LogError("{} of {} bytes is larger than the limit of {} bytes (Err: 2)",
                         trustedFileNameForDisplay, file.Length, maxFileSize);
                 }
                 else
@@ -57,11 +55,7 @@ public class FilesaveController(
                     {
                         trustedFileNameForFileStorage = Path.GetRandomFileName();
 
-                        // TODO: replace with env
-                        var path = Path.Combine(env.ContentRootPath,
-                            env.EnvironmentName, "unsafe_uploads",
-                            trustedFileNameForFileStorage);
-
+                        var path = Path.Combine(_uploadPath, trustedFileNameForFileStorage);
                         var fileInfo = new FileInfo(path);
 
                         await using FileStream fs = new(path, FileMode.Create);

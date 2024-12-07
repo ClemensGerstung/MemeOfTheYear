@@ -5,6 +5,7 @@
 @rendermode InteractiveServer
 
 @inject ILogger<Voter> Logger
+@inject IGrpcClientProvider ClientProvider
 
 <div class="h-50 row text-center align-items-center">
     <div class="col d-none d-md-block col-md-2">
@@ -90,8 +91,7 @@
             return;
         }
 
-        using var channel = GrpcChannel.ForAddress("http://localhost:5000");
-        var imageService = new ImageService.ImageServiceClient(channel);
+        var imageService = ClientProvider.GetClient<ImageService.ImageServiceClient>();
 
         var response = await imageService.GetImageAsync(new GetImageRequest
             {
@@ -104,8 +104,7 @@
 
     private async Task SetVoting(Func<VoteService.VoteServiceClient, Task<VoteResponse>> callback)
     {
-        using var channel = GrpcChannel.ForAddress("http://localhost:5000");
-        var voteService = new VoteService.VoteServiceClient(channel);
+        var voteService = ClientProvider.GetClient<VoteService.VoteServiceClient>();
 
         var response = await callback(voteService);
         if (response.Finished)

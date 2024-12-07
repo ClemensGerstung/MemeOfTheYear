@@ -9,6 +9,7 @@
 
 @inject ProtectedLocalStorage ProtectedLocalStore
 @inject ILogger<Admin> Logger
+@inject IGrpcClientProvider ClientProvider
 
 @if (hasSession)
 {
@@ -61,13 +62,8 @@
     {
         await base.OnInitializedAsync();
 
-        using var channel = GrpcChannel.ForAddress("http://localhost:5000", new GrpcChannelOptions
-            {
-                MaxReceiveMessageSize = 6 * 1024 * 1024,
-                MaxSendMessageSize = 6 * 1024 * 1024
-            });
-        var voteClient = new VoteService.VoteServiceClient(channel);
-        var imageClient = new ImageService.ImageServiceClient(channel);
+        var voteClient = ClientProvider.GetClient<VoteService.VoteServiceClient>();
+        var imageClient = ClientProvider.GetClient<ImageService.ImageServiceClient>();
 
         var result = await ProtectedLocalStore.GetAsync<string>("id");
         var response = await voteClient.InitAsync(new SessionIdRequest
@@ -106,8 +102,7 @@
 
     private async Task UpdateEnabled(string imageId, bool enabled)
     {
-        using var channel = GrpcChannel.ForAddress("http://localhost:5000");
-        var adminClient = new AdminService.AdminServiceClient(channel);
+        var adminClient = ClientProvider.GetClient<AdminService.AdminServiceClient>();
 
         var response = await adminClient.SetImageEnabledAsync(new SetImageEnabledRequest
             {
