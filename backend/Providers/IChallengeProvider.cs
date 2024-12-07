@@ -1,38 +1,25 @@
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 
 public interface IChallengeProvider
 {
+    Task SetupQuestions();
+
     Question GetRandomQuestion();
 
     Question? GetQuestion(int id);
 }
 
-class ChallengeProvider : IChallengeProvider
+class ChallengeProvider(ILogger<ChallengeProvider> logger, ILocalStorageProvider localStorageProvider) : IChallengeProvider
 {
-private readonly ILogger<ChallengeProvider> _logger;
+    private readonly ILogger<ChallengeProvider> _logger = logger;
 
-private readonly List<Question> _questions;
+    private List<Question> _questions = [];
 
-    public ChallengeProvider(ILogger<ChallengeProvider> logger)
+    public async Task SetupQuestions()
     {
-        _logger = logger;
-
-        _questions = [
-            new Question {
-                Id = 1,
-                QuestionText = "asdf?",
-                Answers = [
-                    "asdf"
-                ]
-            },
-            new Question {
-                Id = 2,
-                QuestionText = "fdsa?",
-                Answers = [
-                    "fdsa"
-                ]
-            }
-        ];
+        _questions = await localStorageProvider.GetConfigAsync<List<Question>>("questions.json");
+        _logger.LogInformation("Questions: {}", JsonSerializer.Serialize(_questions));
     }
 
     public Question? GetQuestion(int id)
@@ -44,6 +31,8 @@ private readonly List<Question> _questions;
     {
         var random = new Random();
         var index = random.Next(_questions.Count);
+
+        _logger.LogDebug("Return random question {}", _questions[index]);
 
         return _questions[index];
     }

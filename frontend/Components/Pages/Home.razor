@@ -80,6 +80,8 @@
         {
             var challengeResponse = await challengeClient.GetChallengeAsync(new GetChallengeRequest());
 
+            Logger.LogInformation("Got question {}", challengeResponse.QuestionText);
+
             var parameters = new Dictionary<string, object>();
             parameters.Add(nameof(Challenge.QuestionId), challengeResponse.QuestionId);
             parameters.Add(nameof(Challenge.QuestionText), challengeResponse.QuestionText);

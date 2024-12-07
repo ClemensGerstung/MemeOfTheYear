@@ -42,41 +42,18 @@ public class StageProvider : IStageProvider
 
     public Stage CurrentStage { get; private set; }
 
-    public StageProvider(ILogger<StageProvider> logger)
+    public StageProvider(ILogger<StageProvider> logger,
+                         ILocalStorageProvider localStorageProvider)
     {
         _logger = logger;
 
-        Stages =
-        [
-            // new() {
-            //     Type = StageType.Nominate,
-            //     EndsAt = DateTime.Now + TimeSpan.FromSeconds(15 * 1)
-            // },
-            // new() {
-            //     Type = StageType.Vote,
-            //     EndsAt = DateTime.Now + TimeSpan.FromSeconds(15 * 2.5),
-            //     Extras = new Dictionary<string, object>
-            //     {
-            //         {"MaxVotes", int.MaxValue}
-            //     }
-            // },
-            // new() {
-            //     Type = StageType.Vote,
-            //     EndsAt = DateTime.Now + TimeSpan.FromSeconds(15 * 4.5),
-            //     Extras = new Dictionary<string, object>
-            //     {
-            //         {"MaxVotes", 10}
-            //     }
-            // },
-            new() {
-                Type = StageType.Result,
-                EndsAt = DateTime.Now + TimeSpan.FromSeconds(15 * 5.3)
-            }
-        ];
+        Stages = localStorageProvider.GetConfig<List<Stage>>("stages.json");
+        _logger.LogInformation("{}", JsonSerializer.Serialize(Stages));
+
         CurrentStage = Stages[_stageIndex];
 
-        _waitTimeSpan = TimeSpan.FromSeconds(10);
-        _logger.LogDebug("{} => min wait {}", CurrentStage, _waitTimeSpan);
+        _waitTimeSpan = TimeSpan.FromHours(1);
+        _logger.LogDebug("{}", CurrentStage);
     }
 
     private async Task CheckStages()

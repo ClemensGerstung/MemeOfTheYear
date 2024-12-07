@@ -29,7 +29,7 @@ class ChallengeService(
         return Task.FromResult(new GetChallengeResponse
         {
             QuestionId = question.Id,
-            QuestionText = question.QuestionText
+            QuestionText = question.Text
         });
     }
 }

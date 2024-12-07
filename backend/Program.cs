@@ -20,6 +20,12 @@ builder.Services.AddSingleton<IStageProvider, StageProvider>();
 builder.Services.AddDbContext<IContext, MemeOfTheYearContext>(ServiceLifetime.Singleton, ServiceLifetime.Singleton);
 
 var app = builder.Build();
+var provider = app.Services.GetService<IChallengeProvider>();
+if (provider is not null)
+{
+    await provider.SetupQuestions();
+}
+
 app.Services.GetService<IStageProvider>()?.StartTracking();
 
 app.MapGrpcService<ImageService>();

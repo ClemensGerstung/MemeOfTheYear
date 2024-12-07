@@ -3,3 +3,4 @@ bin/
 frontend/Development
 Migrations/
 images/
+config/
