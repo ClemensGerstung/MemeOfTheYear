@@ -17,7 +17,6 @@ builder.Services.AddSingleton<IImageProvider, ImageProvider>();
 builder.Services.AddSingleton<IChallengeProvider, ChallengeProvider>();
 builder.Services.AddSingleton<IVoteProvider, VoteProvider>();
 builder.Services.AddSingleton<IStageProvider, StageProvider>();
-builder.Services.AddSingleton<IResultProvider, ResultProvider>();
 
 builder.Services.AddDbContext<IContext, MemeOfTheYearContext>(ServiceLifetime.Singleton, ServiceLifetime.Singleton);
 
