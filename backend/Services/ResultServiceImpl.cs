@@ -21,22 +21,29 @@ namespace MemeOfTheYear.Services
             }
 
             var result = imageProvider.GetAvailableMemes()
-                .ToDictionary(x => x, x => voteProvider.GetVoteCount(x.Id, VoteType.Like))
-                .OrderByDescending(x => x.Value)
-                .ThenByDescending(x => x.Key.UploadCount)
+                .Select(x => new
+                {
+                    Image = x,
+                    Likes = voteProvider.GetVoteCount(x.Id, VoteType.Like),
+                    Dislikes = voteProvider.GetVoteCount(x.Id, VoteType.Dislike)
+                })
+                .OrderByDescending(x => x.Likes)
+                .ThenBy(x => x.Dislikes)
+                .ThenByDescending(x => x.Image.UploadCount)
                 .Take(request.Count)
                 .Select(x => new Remote.Image
                 {
-                    Id = x.Key.Id,
-                    Likes = x.Value,
-                    Uploaded = x.Key.UploadCount
+                    Id = x.Image.Id,
+                    Likes = x.Likes,
+                    Dislikes = x.Dislikes,
+                    Uploaded = x.Image.UploadCount
                 })
                 .ToList();
 
             int index = 1;
             foreach (var img in result)
             {
-                logger.LogInformation("{}\t{}\t{}\t{}", index, img.Id, img.Likes, img.Uploaded);
+                logger.LogInformation("{}\t{}\t{}\t{}\t{}", index, img.Id, img.Likes, img.Dislikes, img.Uploaded);
                 index++;
             }
 

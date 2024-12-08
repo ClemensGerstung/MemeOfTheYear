@@ -10,11 +10,15 @@ namespace MemeOfTheYear.Providers
 
         private readonly ILogger<ImageProvider> _logger;
         private readonly IContext _context;
+        private readonly IStageProvider _stageProvider;
+        private readonly IResultProvider _resultProvider;
 
-        public ImageProvider(ILogger<ImageProvider> logger, IContext context)
+        public ImageProvider(ILogger<ImageProvider> logger, IContext context, IStageProvider stageProvider, IResultProvider resultProvider)
         {
             _logger = logger;
             _context = context;
+            _stageProvider = stageProvider;
+            _resultProvider = resultProvider;
 
             Images = [.. _context.Images];
         }
@@ -39,6 +43,22 @@ namespace MemeOfTheYear.Providers
 
         public List<Image> GetAvailableMemes()
         {
+            if (_stageProvider.CurrentStage.Extras.TryGetValue("MaxImages", out object? obj))
+            {
+                int maxImages = obj as int? ?? Images.Count;
+                _logger.LogInformation("Current Stage has a limit of {} allowed images", maxImages);
+
+                var images = _resultProvider.GetMostVotedImages(maxImages);
+                var imagesToDisable = Images.Where(x => x.IsEnabled).Except(images);
+
+                foreach (var imageToDisable in imagesToDisable)
+                {
+                    _logger.LogDebug("Disable image {}", imageToDisable);
+                    imageToDisable.IsEnabled = false;
+                    UpdateImage(imageToDisable).GetAwaiter().GetResult();
+                }
+            }
+
             return Images.Where(x => x.IsEnabled).ToList();
         }
 
