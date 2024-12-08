@@ -1,4 +1,4 @@
-namespace MemeOfTheYear.Backend.Types
+namespace MemeOfTheYear.Types
 {
     public enum VoteType
     {
@@ -6,5 +6,4 @@ namespace MemeOfTheYear.Backend.Types
         Dislike,
         Skip
     }
-
 }

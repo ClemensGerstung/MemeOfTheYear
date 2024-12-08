@@ -1,39 +1,25 @@
-FROM node:20 as build
-
-ARG GRPC_HOST
-ENV GRPC_HOST=$GRPC_HOST
-
-WORKDIR /tmp/frontend/
-
-ADD memeoftheyear.proto /tmp/
-ADD frontend/src/ /tmp/frontend/src/
-ADD frontend/package.json /tmp/frontend/
-ADD frontend/webpack.config.js /tmp/frontend/
-
-ADD --chmod=700 https://github.com/grpc/grpc-web/releases/download/1.5.0/protoc-gen-grpc-web-1.5.0-linux-x86_64 /tmp/protoc-gen-grpc-web
-
-RUN yarn install
+FROM fedora:41
 
 RUN set -xe \
-    && npm install -g grpc-tools \
-    && export NPM_GLOBAL_ROOT=$(npm root -g) \
-    && export PATH=$PATH:$NPM_GLOBAL_ROOT/grpc-tools/bin:/tmp/ \
-    && export OUT_DIR=protogen \
-    && mkdir -p $OUT_DIR \
-    && protoc -I=../ memeoftheyear.proto --js_out=import_style=commonjs:$OUT_DIR \
-    && protoc -I=../ memeoftheyear.proto --grpc-web_out=import_style=commonjs,mode=grpcwebtext:$OUT_DIR
+    && yum update -y \
+    && dnf install dotnet-sdk-9.0 -y \
+    && dnf install aspnetcore-runtime-9.0 -y
 
-# COPY . .
+RUN set -xe \
+    mkdir -o /tmp/frontend
 
-RUN yarn build
+WORKDIR /tmp/frontend
+ADD MemeOfTheYear.proto /tmp/
+ADD frontend/ /tmp/frontend/
 
-FROM nginx:latest
+ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
+ENV DOTNET_USE_POLLING_FILE_WATCHER=true
 
-ADD frontend/css/ /usr/share/nginx/html/css/
-ADD frontend/js/ /usr/share/nginx/html/js/
-ADD frontend/index.html /usr/share/nginx/html/
-ADD frontend/robots.txt /usr/share/nginx/html/
+ENV DOTNET_ROOT=/root/.dotnet
+ENV PATH=$PATH:$DOTNET_ROOT
 
-COPY --from=build /tmp/frontend/dist /usr/share/nginx/html/dist
+RUN set -xe \
+    && dotnet publish \
+    && rm -r ./bin/Debug
 
-EXPOSE 80
+CMD ["dotnet", "run"]

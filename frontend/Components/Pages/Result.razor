@@ -1,0 +1,77 @@
+@using BlazorBootstrap
+@using Grpc.Net.Client
+@using MemeOfTheYear.Remote
+
+@rendermode InteractiveServer
+
+@inject ILogger<Result> Logger
+@inject IGrpcClientProvider ClientProvider
+
+<div class="h-50 row text-center">
+    <div class="col h-100">
+        <img src="@winnerImage" class="h-100" style="max-width: 400px;" />
+    </div>
+</div>
+<div class="row row-cols-auto">
+    <div class="col-6 col-xs-12 h-100">
+        <div class="p-1 h-100 text-center">
+            <img src="@secondImage" class="h-100" id="meme-img" style="max-width: 300px;" />
+        </div>
+    </div>
+    <div class="col-6 col-xs-12 h-100">
+        <div class="p-1 h-100 text-center">
+            <img src="@thirdImage" class="h-100" id="meme-img" style="max-width: 300px;" />
+        </div>
+    </div>
+</div>
+<div class="row row-cols-auto">
+    @foreach (var rest in images.Skip(3))
+    {
+        <div class="col">
+            <div class="p-1">
+                <img src="@rest" class="image-fluid g-2" style="max-width: 150px;" />
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string SessionId { get; set; } = "";
+
+    private string winnerImage = string.Empty;
+    private string secondImage = string.Empty;
+    private string thirdImage = string.Empty;
+
+    private List<string> images = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        Logger.LogInformation("{}", SessionId);
+
+        var resultClient = ClientProvider.GetClient<ResultService.ResultServiceClient>();
+        var imageClient = ClientProvider.GetClient<ImageService.ImageServiceClient>();
+
+        var response = await resultClient.GetMostLikedImagesAsync(new GetVotedImagesRequest
+            {
+                Count = 10,
+                SessionId = this.SessionId
+            });
+
+        images.Clear();
+        foreach (var img in response.Images)
+        {
+            var imageResponse = await imageClient.GetImageAsync(new GetImageRequest
+                {
+                    SessionId = this.SessionId,
+                    ImageId = img.Id
+                });
+            images.Add(imageResponse.ImageContent);
+        }
+
+        winnerImage = images.FirstOrDefault(string.Empty);
+        secondImage = images.Skip(1).FirstOrDefault(string.Empty);
+        thirdImage = images.Skip(2).FirstOrDefault(string.Empty);
+    }
+}

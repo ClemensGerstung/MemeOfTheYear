@@ -1,10 +1,9 @@
-namespace MemeOfTheYear.Backend.Types
+namespace MemeOfTheYear.Types
 {
     public class Session
     {
-        public string Id { get; set; } = "";
+        public String Id { get; set; } = "";
 
-        public int MaxLikes { get; set; }
+        public bool IsAuthenticated { get; set; }
     }
-
 }

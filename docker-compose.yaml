@@ -1,0 +1,66 @@
+services:
+  frontend:
+    build:
+      context: ./
+      dockerfile: frontend/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      MEME_OF_THE_YEAR_UPLOAD: /opt/data/data/upload
+      MEME_OF_THE_YEAR_BACKEND: http://backend:5000
+    networks:
+      - frontend
+      - backend
+    volumes:
+      # - ./data/nginx:/etc/nginx/conf.d
+      # - ./data/certbot/conf:/etc/letsencrypt
+      # - ./data/certbot/www:/var/www/certbot
+      - data:/opt/data/data
+  database:
+    image: mariadb:latest
+    restart: always
+    environment:
+      MARIADB_ROOT_PASSWORD: superS3cret!
+      MARIADB_USER: user
+      MARIADB_DATABASE: memeOfTheYear
+      MARIADB_PASSWORD: password
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 1m30s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+    volumes:
+      - "./allow_user.sql:/docker-entrypoint-initdb.d/11.sql:Z"
+  backend:
+    build:
+      context: ./
+      dockerfile: backend/Dockerfile
+    environment:
+      MYSQL_SERVER: memeoftheyear-database-1
+      MYSQL_USERNAME: user
+      MYSQL_PASSWORD: password
+      MEME_OF_THE_YEAR_UPLOAD: /opt/data/data/upload
+      MEME_OF_THE_YEAR_IMAGES: /opt/data/data/images
+      MEME_OF_THE_YEAR_CONFIG: /opt/data/config
+    restart: unless-stopped
+    networks:
+      - backend
+    depends_on:
+      database:
+        condition: service_healthy
+        restart: true
+    volumes:
+      - ./data/opt/config:/opt/data/config:Z
+      - data:/opt/data/data
+
+volumes:
+  data:
+
+networks:
+  frontend:
+  backend:

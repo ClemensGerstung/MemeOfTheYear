@@ -1,0 +1,129 @@
+﻿@page "/"
+
+@using BlazorBootstrap
+@using Grpc.Net.Client
+@using MemeOfTheYear.Remote
+@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+
+@inject ProtectedLocalStorage ProtectedLocalStore
+@inject ILogger<Home> Logger
+@inject IGrpcClientProvider ClientProvider
+
+<div class="container-fluid fill" style="height: 100%;">
+    <div class="h-25 row text-center align-items-center">
+        <h1>Maimai des Jahres</h1>
+    </div>
+
+    @if (showQuestion)
+    {
+        <Modal @ref="modal" UseStaticBackdrop="true" CloseOnEscape="false" IsVerticallyCentered="true"
+            ShowCloseButton="false" />
+    }
+    else
+    {
+        switch (stage?.Type)
+        {
+            case Stage.Types.Type.Nominate:
+                <Uploader SessionId="@sessionId"></Uploader>
+                break;
+            case Stage.Types.Type.Vote:
+                <Voter SessionId="@sessionId" FirstImage="@imageId"></Voter>
+                break;
+            case Stage.Types.Type.Result:
+                <Result SessionId="@sessionId" ></Result>
+                break;
+            default:
+                <p>Wow, such empty here!</p>
+                break;
+        }
+    }
+
+</div>
+
+@code {
+    private Modal modal = default!;
+    private string sessionId = "";
+    private string imageId = "";
+
+    private bool showQuestion = true;
+
+    private Stage? stage = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var voteClient = ClientProvider.GetClient<VoteService.VoteServiceClient>();
+        var challengeClient = ClientProvider.GetClient<ChallengeService.ChallengeServiceClient>();
+
+        var result = await ProtectedLocalStore.GetAsync<string>("id");
+        var response = await voteClient.InitAsync(new SessionIdRequest
+            {
+                MaxLikes = int.MaxValue,
+                SessionId = result.Value ?? string.Empty
+            });
+        sessionId = response.SessionId;
+        stage = response.Stage;
+        imageId = response.ImageId;
+
+        if (!result.Success)
+        {
+            await ProtectedLocalStore.SetAsync("id", sessionId);
+        }
+
+        showQuestion = !response.IsAuthenticated;
+        if (showQuestion)
+        {
+            var challengeResponse = await challengeClient.GetChallengeAsync(new GetChallengeRequest());
+
+            Logger.LogInformation("Got question {}", challengeResponse.QuestionText);
+
+            var parameters = new Dictionary<string, object>();
+            parameters.Add(nameof(Challenge.QuestionId), challengeResponse.QuestionId);
+            parameters.Add(nameof(Challenge.QuestionText), challengeResponse.QuestionText);
+            parameters.Add(nameof(Challenge.SessionId), response.SessionId);
+            parameters.Add(nameof(Challenge.OnClickCallback), EventCallback.Factory.Create<TodoItem>(this, OnAnswerClick));
+
+            await modal.ShowAsync<Challenge>("Bitte beantworten!", parameters: parameters);
+        }
+    }
+
+    private async Task OnAnswerClick(TodoItem answer)
+    {
+        var voteClient = ClientProvider.GetClient<VoteService.VoteServiceClient>();
+        var challengeClient = ClientProvider.GetClient<ChallengeService.ChallengeServiceClient>();
+
+        Logger.LogDebug("got item {}", answer);
+
+        var response = await challengeClient.AnswerChallengeAsync(new AnswerChallengeRequest
+            {
+                Answer = answer.Answer,
+                QuestionId = answer.QuestionId,
+                SessionId = answer.SessionId
+            });
+
+        Logger.LogDebug("success? {}", response.Success);
+        showQuestion = !response.Success;
+
+        if (showQuestion)
+        {
+            var challengeResponse = await challengeClient.GetChallengeAsync(new GetChallengeRequest());
+
+            var parameters = new Dictionary<string, object>();
+            parameters.Add(nameof(Challenge.QuestionId), challengeResponse.QuestionId);
+            parameters.Add(nameof(Challenge.QuestionText), challengeResponse.QuestionText);
+            parameters.Add(nameof(Challenge.SessionId), answer.SessionId);
+            parameters.Add(nameof(Challenge.OnClickCallback), EventCallback.Factory.Create<TodoItem>(this, OnAnswerClick));
+
+            await modal.ShowAsync<Challenge>("Bitte beantworten!", parameters: parameters);
+        }
+        else
+        {
+            var nextImageResponse = await voteClient.SkipAsync(new VoteRequest { SessionId = answer.SessionId });
+            if (!nextImageResponse.Finished)
+            {
+                imageId = nextImageResponse.NextImageId;
+            }
+        }
+    }
+}

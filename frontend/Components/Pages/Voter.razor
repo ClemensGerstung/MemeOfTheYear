@@ -1,0 +1,163 @@
+@using BlazorBootstrap
+@using Grpc.Net.Client
+@using MemeOfTheYear.Remote
+
+@rendermode InteractiveServer
+
+@inject ILogger<Voter> Logger
+@inject IGrpcClientProvider ClientProvider
+
+<div class="h-50 row text-center align-items-center">
+    <div class="col d-none d-md-block col-md-2">
+        <Button Class="btn" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-title="I don't like"
+            @onclick="Dislike" Disabled="@isButtonDisabled">
+            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="red" class="bi bi-x-lg"
+                viewBox="0 0 16 16">
+                <path
+                    d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z" />
+            </svg>
+        </Button>
+    </div>
+    <div class="col col-xs-12 col-sm-8 h-100 align-items-centerr">
+        <img src="@imageContent" class="w-100" id="meme-img" style="max-width: 400px;" />
+    </div>
+    <div class="col d-none d-md-block col-md-2">
+        <Button Class="btn btn-like" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-title="I like"
+            @onclick="Like" Disabled="@isButtonDisabled">
+            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="green" class="bi bi-heart-fill"
+                viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M8 1.314C12.438-3.248 23.534 4.735 8 15-7.534 4.736 3.562-3.248 8 1.314" />
+            </svg>
+        </Button>
+    </div>
+</div>
+<div class="h-25 row text-center align-items-center">
+    <div class="col d-md-none">
+        <Button Class="btn" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-title="I don't like"
+            @onclick="Dislike">
+            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="red" class="bi bi-x-lg"
+                viewBox="0 0 16 16">
+                <path
+                    d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z" />
+            </svg>
+        </Button>
+    </div>
+    <div class="col">
+        <Button Class="btn" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-title="Skip this meme"
+            @onclick="Skip" Disabled="@isButtonDisabled">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="grey" class="bi bi-skip-end"
+                viewBox="0 0 16 16">
+                <path
+                    d="M12.5 4a.5.5 0 0 0-1 0v3.248L5.233 3.612C4.713 3.31 4 3.655 4 4.308v7.384c0 .653.713.998 1.233.696L11.5 8.752V12a.5.5 0 0 0 1 0zM5 4.633 10.804 8 5 11.367z" />
+            </svg>
+        </Button>
+    </div>
+    <div class="col d-md-none">
+        <Button Class="btn btn-like" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-title="I like"
+            @onclick="Like" Disabled="@isButtonDisabled">
+            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="green" class="bi bi-heart-fill"
+                viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M8 1.314C12.438-3.248 23.534 4.735 8 15-7.534 4.736 3.562-3.248 8 1.314" />
+            </svg>
+        </Button>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string SessionId { get; set; } = "";
+
+    [Parameter] public string FirstImage { get; set; } = "";
+
+    private string imageContent = "https://placehold.co/400";
+    private string currentImageId = "";
+    private bool isButtonDisabled = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        Logger.LogInformation("{} {}", SessionId, FirstImage);
+
+        await SetNewImage(FirstImage);
+    }
+
+    private async Task SetNewImage(string imageId)
+    {
+        if (string.IsNullOrWhiteSpace(imageId))
+        {
+            isButtonDisabled = true;
+            currentImageId = string.Empty;
+            imageContent = "imgs/default.jpg";
+            return;
+        }
+
+        var imageService = ClientProvider.GetClient<ImageService.ImageServiceClient>();
+
+        var response = await imageService.GetImageAsync(new GetImageRequest
+            {
+                ImageId = imageId,
+                SessionId = this.SessionId
+            });
+        imageContent = response.ImageContent;
+        currentImageId = imageId;
+    }
+
+    private async Task SetVoting(Func<VoteService.VoteServiceClient, Task<VoteResponse>> callback)
+    {
+        var voteService = ClientProvider.GetClient<VoteService.VoteServiceClient>();
+
+        var response = await callback(voteService);
+        if (response.Finished)
+        {
+            isButtonDisabled = true;
+            currentImageId = string.Empty;
+            imageContent = "imgs/default.jpg";
+        }
+        else
+        {
+            await SetNewImage(response.NextImageId);
+        }
+    }
+
+    private VoteRequest VoteRequest
+    {
+        get
+        {
+            return new VoteRequest
+                {
+                    ImageId = currentImageId,
+                    SessionId = this.SessionId
+                };
+        }
+    }
+
+    private Task Like()
+    {
+        return SetVoting(async client =>
+        {
+            var response = await client.LikeAsync(VoteRequest);
+
+            return response;
+        });
+    }
+
+    private Task Dislike()
+    {
+        return SetVoting(async client =>
+        {
+            var response = await client.DislikeAsync(VoteRequest);
+
+            return response;
+        });
+    }
+
+    private Task Skip()
+    {
+        return SetVoting(async client =>
+        {
+            var response = await client.SkipAsync(VoteRequest);
+
+            return response;
+        });
+    }
+}

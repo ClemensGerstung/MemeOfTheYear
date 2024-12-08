@@ -1,0 +1,58 @@
+@using BlazorBootstrap
+@rendermode InteractiveServer
+
+<div class="modal-body">
+    <p>
+        Nicht jeder soll Zugriff auf diese super-duper Website haben. Deswegen musst du diese Frage beantworten, um mit
+        der Bewertung starten zu können!
+    </p>
+    <p id="question-text" class="lead">
+        @QuestionText
+    </p>
+    <form>
+        <div class="mb-3">
+            <label for="challenge-answer" class="col-form-label">Deine Antwort:</label>
+            <input @bind="Answer" @bind:event="oninput" class="form-control" id="challenge-answer" />
+        </div>
+    </form>
+</div>
+<div class="modal-footer">
+    <Button Color="ButtonColor.Primary" @onclick="OnAnswerClick" Disabled="@isButtonDisabled">Prüfen</Button>
+</div>
+
+@code {
+    private string _answer = "";
+
+    private string Answer
+    {
+        get => _answer;
+        set
+        {
+            if (value != _answer)
+            {
+                _answer = value;
+                isButtonDisabled = string.IsNullOrWhiteSpace(_answer);
+            }
+        }
+    }
+
+    private bool isButtonDisabled = true;
+
+    [Parameter] public string QuestionText { get; set; } = "";
+
+    [Parameter] public int QuestionId { get; set; }
+    
+    [Parameter] public string SessionId { get; set; } = "";
+
+    [Parameter] public EventCallback<TodoItem> OnClickCallback { get; set; }
+
+    private async Task OnAnswerClick(MouseEventArgs args)
+    {
+        await OnClickCallback.InvokeAsync(new TodoItem
+            {
+                QuestionId = this.QuestionId,
+                Answer = this.Answer,
+                SessionId = this.SessionId
+            });
+    }
+}
