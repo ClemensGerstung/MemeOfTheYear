@@ -68,6 +68,8 @@
 
     [Parameter] public string FirstImage { get; set; } = "";
 
+    [Parameter] public int StageId { get; set; }
+
     private string imageContent = "https://placehold.co/400";
     private string currentImageId = "";
     private bool isButtonDisabled = false;
@@ -126,7 +128,8 @@
             return new VoteRequest
                 {
                     ImageId = currentImageId,
-                    SessionId = this.SessionId
+                    SessionId = this.SessionId,
+                    StageId = this.StageId
                 };
         }
     }

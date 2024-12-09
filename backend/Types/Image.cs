@@ -21,5 +21,24 @@ namespace MemeOfTheYear.Types
         {
             return JsonSerializer.Serialize(this);
         }
+
+        public override int GetHashCode()
+        {
+            return Id.GetHashCode();
+        }
+
+        public override bool Equals(object? obj)
+        {
+            if(obj is null) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            if(obj is not Image) return false;
+
+            return Equals((Image)obj);
+        }
+
+        protected bool Equals(Image image)
+        {
+            return image.Id == Id;
+        }
     }
 }

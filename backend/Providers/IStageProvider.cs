@@ -8,6 +8,8 @@ namespace MemeOfTheYear.Providers
 
         public Stage CurrentStage { get; }
 
-        void StartTracking();
+        Task StartTracking();
+
+        public Stage GetStageById(int id);
     }
 }

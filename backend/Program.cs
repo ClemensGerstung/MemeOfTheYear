@@ -21,13 +21,17 @@ builder.Services.AddSingleton<IStageProvider, StageProvider>();
 builder.Services.AddDbContext<IContext, MemeOfTheYearContext>(ServiceLifetime.Singleton, ServiceLifetime.Singleton);
 
 var app = builder.Build();
-var provider = app.Services.GetService<IChallengeProvider>();
-if (provider is not null)
+var challenge = app.Services.GetService<IChallengeProvider>();
+if (challenge is not null)
 {
-    await provider.SetupQuestions();
+    await challenge.SetupQuestions();
 }
 
-app.Services.GetService<IStageProvider>()?.StartTracking();
+var stages = app.Services.GetService<IStageProvider>();
+if (stages is not null)
+{
+    await stages.StartTracking();
+}
 
 app.MapGrpcService<ImageServiceImpl>();
 app.MapGrpcService<VoteServiceImpl>();

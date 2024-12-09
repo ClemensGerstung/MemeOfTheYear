@@ -3,6 +3,7 @@ using Grpc.Core;
 using MemeOfTheYear.Remote;
 using MemeOfTheYear.Providers;
 using MemeOfTheYear.Types;
+using System.Text.Json;
 
 namespace MemeOfTheYear.Services
 {
@@ -37,7 +38,7 @@ namespace MemeOfTheYear.Services
             }
             else
             {
-                var meme = voteProvider.GetNextRandomImage(session);
+                var meme = voteProvider.GetNextRandomImage(session, stage);
                 nextImageId = meme?.Id ?? String.Empty;
             }
 
@@ -50,7 +51,8 @@ namespace MemeOfTheYear.Services
                 ImageId = nextImageId,
                 Stage = new Remote.Stage
                 {
-                    Type = type
+                    Type = type,
+                    Id = stage.Id
                 }
             };
         }
@@ -78,22 +80,26 @@ namespace MemeOfTheYear.Services
             }
 
             var session = sessionProvider.GetSession(request.SessionId)!;
+            var stage = stageProvider.GetStageById(request.StageId);
 
             if (!string.IsNullOrWhiteSpace(request.ImageId))
             {
                 var image = imageProvider.GetImageById(request.ImageId);
 
-                await voteProvider.SetVoting(session, image, type);
+                await voteProvider.SetVoting(session, image, stage, type);
             }
 
             stageProvider.CurrentStage.Extras.TryGetValue("MaxVotes", out object? maxVotes);
-            var allowedMaxVotes = maxVotes as int? ?? int.MaxValue;
-            var sessionVotes = voteProvider.GetSessionVotes(request.SessionId);
+            
+            var allowedMaxVotes = (maxVotes as JsonElement?)?.GetInt32() ?? int.MaxValue;
+            var sessionVotes = voteProvider.GetSessionVotes(request.SessionId, stage);
+            logger.LogInformation("Session {} has voted {} times and is allowed {} votes", request.SessionId, sessionVotes, allowedMaxVotes);
+
             string nextImageId = string.Empty;
 
-            if (sessionVotes <= allowedMaxVotes)
+            if (sessionVotes < allowedMaxVotes)
             {
-                var nextImage = voteProvider.GetNextRandomImage(session);
+                var nextImage = voteProvider.GetNextRandomImage(session, stage);
                 nextImageId = nextImage?.Id ?? string.Empty;
             }
 

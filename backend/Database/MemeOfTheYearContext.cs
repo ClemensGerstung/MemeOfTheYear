@@ -13,7 +13,7 @@ namespace MemeOfTheYear.Database
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             var server = Environment.GetEnvironmentVariable("MYSQL_SERVER") ?? "localhost";
-            var username = Environment.GetEnvironmentVariable("MYSQL_USERNAME") ?? "demo";
+            var username = Environment.GetEnvironmentVariable("MYSQL_USERNAME") ?? "user";
             var password = Environment.GetEnvironmentVariable("MYSQL_PASSWORD") ?? "password";
 
             var connectionString = $"server={server};user={username};password={password};database=memeOfTheYear";
@@ -23,6 +23,11 @@ namespace MemeOfTheYear.Database
                 .LogTo(Console.WriteLine, LogLevel.Information)
                 .EnableSensitiveDataLogging()
                 .EnableDetailedErrors();
+        }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
         }
 
         private async Task RunInTransaction(Func<Task> action)

@@ -1,62 +1,55 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using MemeOfTheYear.Types;
+using MemeOfTheYear.Database;
 
 namespace MemeOfTheYear.Providers
 {
-    public class StageProvider : IStageProvider
+    public class StageProvider(
+        ILogger<StageProvider> logger,
+        ILocalStorageProvider localStorageProvider,
+        IImageProvider imageProvider,
+        IVoteProvider voteProvider
+    ) : IStageProvider
     {
-        private ILogger<StageProvider> _logger;
-        private readonly IImageProvider _imageProvider;
-        private readonly IVoteProvider _voteProvider;
         private int _stageIndex = 0;
         private TimeSpan _waitTimeSpan;
 
-        public List<Stage> Stages { get; }
+        public List<Stage> Stages { get; private set; } = new();
 
-        public Stage CurrentStage { get; private set; }
-
-        public StageProvider(ILogger<StageProvider> logger,
-                             ILocalStorageProvider localStorageProvider,
-                             IImageProvider imageProvider,
-                             IVoteProvider voteProvider)
-        {
-            _logger = logger;
-            _imageProvider = imageProvider;
-            _voteProvider = voteProvider;
-
-            Stages = localStorageProvider.GetConfig<List<Types.Stage>>("stages.json");
-            _logger.LogInformation("{}", JsonSerializer.Serialize(Stages));
-
-            CurrentStage = Stages[_stageIndex];
-
-            _waitTimeSpan = TimeSpan.FromHours(1);
-            _logger.LogDebug("{}", CurrentStage);
-        }
+        public Stage CurrentStage { get; private set; } = new();
 
         private async Task CheckStages()
         {
             var now = DateTime.Now;
-            _logger.LogDebug("Check {} against {}", now, CurrentStage);
+            logger.LogDebug("Check {} against {}", now, CurrentStage);
 
             if (now >= CurrentStage.EndsAt)
             {
+                var oldStage = CurrentStage;
                 _stageIndex++;
                 CurrentStage = Stages[_stageIndex];
-                _logger.LogInformation("Advanced to next stage {}", CurrentStage);
+                logger.LogInformation("Advanced to next stage {}", CurrentStage);
 
                 if (CurrentStage.Extras.TryGetValue("MaxImages", out object? obj))
                 {
-                    int maxImages = obj as int? ?? +_imageProvider.Images.Count;
-                    _logger.LogInformation("Current Stage has a limit of {} allowed images", maxImages);
+                    int maxImages = imageProvider.Images.Count;
+                    if (obj is not null)
+                    {
+                        logger.LogDebug("MaxImages: {} {}", obj, obj.GetType());
+                        maxImages = ((JsonElement)obj).GetInt32();
+                    }
+
+                    logger.LogInformation("Current Stage has a limit of {} allowed images", maxImages);
 
                     // TODO: merge with ResultServiceImpl!
-                    var images = _imageProvider.Images.Where(x => x.IsEnabled)
+                    var images = imageProvider.Images
+                                        .Where(x => x.IsEnabled)
                                         .Select(x => new
                                         {
                                             Image = x,
-                                            Count = _voteProvider.GetVoteCount(x.Id, VoteType.Like),
-                                            Dislikes = _voteProvider.GetVoteCount(x.Id, VoteType.Dislike)
+                                            Count = voteProvider.GetVoteCount(x.Id, oldStage, VoteType.Like),
+                                            Dislikes = voteProvider.GetVoteCount(x.Id, oldStage, VoteType.Dislike)
                                         })
                                         .OrderByDescending(x => x.Count)
                                         .ThenBy(x => x.Dislikes)
@@ -64,13 +57,15 @@ namespace MemeOfTheYear.Providers
                                         .Take(maxImages)
                                         .Select(x => x.Image)
                                         .ToList();
-                    var imagesToDisable = _imageProvider.Images.Where(x => x.IsEnabled).Except(images);
+                    logger.LogDebug("Images to keep active: {}", JsonSerializer.Serialize(images));
+                    var imagesToDisable = imageProvider.Images.Where(x => x.IsEnabled).Except(images).ToList();
+                    logger.LogDebug("Images to disable: {}", JsonSerializer.Serialize(imagesToDisable));
 
                     foreach (var imageToDisable in imagesToDisable)
                     {
-                        _logger.LogDebug("Disable image {}", imageToDisable);
+                        logger.LogDebug("Disable image {}", imageToDisable);
                         imageToDisable.IsEnabled = false;
-                        await _imageProvider.UpdateImage(imageToDisable);
+                        await imageProvider.UpdateImage(imageToDisable);
                     }
                 }
             }
@@ -79,13 +74,27 @@ namespace MemeOfTheYear.Providers
             await CheckStages();
         }
 
-        public void StartTracking()
+        public async Task StartTracking()
         {
-            _ = Task.Run(async delegate
+            Stages = localStorageProvider.GetConfig<List<Types.Stage>>("stages.json");
+            logger.LogDebug("{}", JsonSerializer.Serialize(Stages));
+
+            CurrentStage = Stages.Where(x => x.EndsAt >= DateTime.Now).First();
+            _stageIndex = Stages.IndexOf(CurrentStage);
+            _waitTimeSpan = TimeSpan.FromMinutes(1);
+
+            logger.LogDebug("{}", CurrentStage);
+
+            _ = Task.Run(async () =>
             {
                 await Task.Delay(_waitTimeSpan);
                 await CheckStages();
             });
+        }
+
+        public Stage GetStageById(int id)
+        {
+            return Stages.First(x => x.Id == id);
         }
     }
 }

@@ -20,9 +20,9 @@ namespace MemeOfTheYear.Providers
             _votes = [.. _context.Votes];
         }
 
-        public async Task SetVoting(Session session, Image image, VoteType type)
+        public async Task SetVoting(Session session, Image image, Stage stage, VoteType type)
         {
-            var index = _votes.FindIndex(x => x.Session == session && x.Image == image);
+            var index = _votes.FindIndex(x => x.Session == session && x.Image == image && x.StageId == stage.Id);
 
             if (index == -1)
             {
@@ -30,7 +30,8 @@ namespace MemeOfTheYear.Providers
                 {
                     Session = session,
                     Image = image,
-                    Type = type
+                    Type = type,
+                    StageId = stage.Id
                 };
                 _votes.Add(vote);
                 await _context.AddVote(vote);
@@ -44,10 +45,12 @@ namespace MemeOfTheYear.Providers
             }
         }
 
-        public Image? GetNextRandomImage(Session session)
+        public Image? GetNextRandomImage(Session session, Stage stage)
         {
             var available = _imageProvider.GetAvailableMemes();
-            var used = _votes.Where(x => x.Session == session).Select(x => x.Image).ToList();
+            var used = _votes.Where(x => x.Session == session && x.StageId == stage.Id && x.Type != VoteType.Skip)
+                            .Select(x => x.Image)
+                            .ToList();
             var sessionAvailable = available.Except(used).ToList();
 
             if (sessionAvailable.Count > 0)
@@ -67,9 +70,16 @@ namespace MemeOfTheYear.Providers
             return _votes.Where(x => x.Type == type).Count(x => x.Image.Id == imageId);
         }
 
-        public int GetSessionVotes(string sessionId)
+        public int GetVoteCount(string imageId, Stage stage, VoteType type)
         {
-            return _votes.Count(x => x.Session.Id == sessionId);
+            return _votes.Where(x => x.Type == type)
+                         .Where(x => x.StageId == stage.Id)
+                         .Count(x => x.Image.Id == imageId);
+        }
+
+        public int GetSessionVotes(string sessionId, Stage stage)
+        {
+            return _votes.Count(x => x.Session.Id == sessionId && x.StageId == stage.Id && x.Type != VoteType.Skip);
         }
     }
 }

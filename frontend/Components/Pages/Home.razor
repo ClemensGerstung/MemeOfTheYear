@@ -29,7 +29,7 @@
                 <Uploader SessionId="@sessionId"></Uploader>
                 break;
             case Stage.Types.Type.Vote:
-                <Voter SessionId="@sessionId" FirstImage="@imageId"></Voter>
+                <Voter SessionId="@sessionId" StageId="@stage.Id" FirstImage="@imageId"></Voter>
                 break;
             case Stage.Types.Type.Result:
                 <Result SessionId="@sessionId" ></Result>

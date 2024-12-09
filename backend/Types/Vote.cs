@@ -9,5 +9,7 @@ namespace MemeOfTheYear.Types
         public Image Image { get; set; } = new();
 
         public VoteType Type { get; set; }
+
+        public int StageId { get; set; }
     }
 }
