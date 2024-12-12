@@ -66,9 +66,12 @@ namespace MemeOfTheYear.Providers
         public async Task UpdateImage(Image image)
         {
             var index = Images.FindIndex(x => x.Id == image.Id);
-            Images[index] = image;
+            if (index >= 0)
+            {
+                Images[index] = image;
 
-            await _context.UpdateMeme(image);
+                await _context.UpdateMeme(image);
+            }
         }
     }
 }
