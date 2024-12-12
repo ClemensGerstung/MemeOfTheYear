@@ -74,7 +74,7 @@ namespace MemeOfTheYear.Providers
             await CheckStages();
         }
 
-        public async Task StartTracking()
+        public Task StartTracking()
         {
             Stages = localStorageProvider.GetConfig<List<Types.Stage>>("stages.json");
             logger.LogDebug("{}", JsonSerializer.Serialize(Stages));
@@ -90,6 +90,8 @@ namespace MemeOfTheYear.Providers
                 await Task.Delay(_waitTimeSpan);
                 await CheckStages();
             });
+
+            return Task.CompletedTask;
         }
 
         public Stage GetStageById(int id)

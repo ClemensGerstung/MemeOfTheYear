@@ -4,7 +4,7 @@ using MemeOfTheYear.Types;
 
 namespace MemeOfTheYear.Providers
 {
-    class ImageProvider : IImageProvider
+    public class ImageProvider : IImageProvider
     {
         public List<Image> Images { get; }
 

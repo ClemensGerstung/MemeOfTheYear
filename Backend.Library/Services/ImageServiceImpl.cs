@@ -7,7 +7,7 @@ using MemeOfTheYear.Types;
 
 namespace MemeOfTheYear.Services
 {
-    class ImageServiceImpl(
+    public class ImageServiceImpl(
         ILogger<ImageServiceImpl> logger,
         ILocalStorageProvider localStorageProvider,
         IImageProvider imageProvider,

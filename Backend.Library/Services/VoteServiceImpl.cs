@@ -7,7 +7,7 @@ using System.Text.Json;
 
 namespace MemeOfTheYear.Services
 {
-    class VoteServiceImpl(
+    public class VoteServiceImpl(
         ILogger<VoteServiceImpl> logger,
         ISessionProvider sessionProvider,
         IVoteProvider voteProvider,

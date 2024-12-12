@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 
 namespace MemeOfTheYear.Providers
 {
-    class LocalStorageProvider : ILocalStorageProvider
+    public class LocalStorageProvider : ILocalStorageProvider
     {
         private readonly ILogger<LocalStorageProvider> _logger;
         private readonly string _uploadPath;

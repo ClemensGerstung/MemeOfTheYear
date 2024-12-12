@@ -4,7 +4,7 @@ using MemeOfTheYear.Types;
 
 namespace MemeOfTheYear.Database
 {
-    class MemeOfTheYearContext(ILogger<MemeOfTheYearContext> logger) : DbContext, IContext
+    public class MemeOfTheYearContext(ILogger<MemeOfTheYearContext> logger) : DbContext, IContext
     {
         public DbSet<Session> Sessions { get; set; }
         public DbSet<Image> Images { get; set; }

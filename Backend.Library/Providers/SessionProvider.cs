@@ -4,7 +4,7 @@ using MemeOfTheYear.Types;
 
 namespace MemeOfTheYear.Providers
 {
-    class SessionProvider : ISessionProvider
+    public class SessionProvider : ISessionProvider
     {
         private Dictionary<string, Session> _sessions;
 

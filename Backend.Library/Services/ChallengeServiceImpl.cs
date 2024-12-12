@@ -4,7 +4,7 @@ using MemeOfTheYear.Providers;
 
 namespace MemeOfTheYear.Services
 {
-    class ChallengeServiceImpl(
+    public class ChallengeServiceImpl(
         ISessionProvider sessionProvider,
         IChallengeProvider challengeProvider
     ) : ChallengeService.ChallengeServiceBase

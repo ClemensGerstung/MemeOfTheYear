@@ -4,7 +4,7 @@ using MemeOfTheYear.Database;
 
 namespace MemeOfTheYear.Providers
 {
-    class VoteProvider : IVoteProvider
+    public class VoteProvider : IVoteProvider
     {
         private List<Vote> _votes;
         private readonly ILogger<VoteProvider> _logger;

@@ -4,7 +4,7 @@ using MemeOfTheYear.Types;
 
 namespace MemeOfTheYear.Providers
 {
-    class ChallengeProvider(ILogger<ChallengeProvider> logger, ILocalStorageProvider localStorageProvider) : IChallengeProvider
+    public class ChallengeProvider(ILogger<ChallengeProvider> logger, ILocalStorageProvider localStorageProvider) : IChallengeProvider
     {
 
         private List<Question> _questions = [];

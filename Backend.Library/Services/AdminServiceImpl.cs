@@ -4,7 +4,7 @@ using MemeOfTheYear.Providers;
 
 namespace MemeOfTheYear.Services
 {
-    class AdminServiceImpl(
+    public class AdminServiceImpl(
         ISessionProvider sessionProvider,
         IImageProvider imageProvider
     ) : AdminService.AdminServiceBase
