@@ -5,9 +5,9 @@ namespace MemeOfTheYear.Database
 {
     public interface IContext
     {
-        DbSet<Session> Sessions { get; }
-        DbSet<Image> Images { get; }
-        DbSet<Vote> Votes { get; }
+        List<Session> Sessions { get; }
+        List<Image> Images { get; }
+        List<Vote> Votes { get; }
 
         Task AddSession(Session session);
         Task UpdateSession(Session session);

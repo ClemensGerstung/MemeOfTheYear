@@ -19,18 +19,25 @@ namespace MemeOfTheYear.Providers
             _sessions = _context.Sessions.ToDictionary(x => x.Id);
         }
 
-        public async Task Authenticate(string id)
+        public async Task<Session> Authenticate(string id)
         {
             _sessions[id].IsAuthenticated = true;
 
             await _context.UpdateSession(_sessions[id]);
+
+            return _sessions[id];
         }
 
-        public async Task<Session> CreateNew()
+        public async Task<Session> CreateNew(string id)
         {
+            if(string.IsNullOrWhiteSpace(id))
+            {
+                id = Guid.NewGuid().ToString();
+            }
+
             var session = new Session
             {
-                Id = Guid.NewGuid().ToString(),
+                Id = id,
                 IsAuthenticated = false
             };
             _sessions.Add(session.Id, session);

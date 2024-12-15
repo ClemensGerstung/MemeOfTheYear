@@ -8,6 +8,10 @@ namespace MemeOfTheYear.Providers
 
         public Stage CurrentStage { get; }
 
+        public Task BackgroundTask { get; }
+
+        public TimeSpan WaitDuration { get; }
+
         Task StartTracking();
 
         public Stage GetStageById(int id);

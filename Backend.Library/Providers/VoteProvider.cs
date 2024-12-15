@@ -20,7 +20,7 @@ namespace MemeOfTheYear.Providers
             _votes = [.. _context.Votes];
         }
 
-        public async Task SetVoting(Session session, Image image, Stage stage, VoteType type)
+        public async Task<Vote> SetVoting(Session session, Image image, Stage stage, VoteType type)
         {
             var index = _votes.FindIndex(x => x.Session == session && x.Image == image && x.StageId == stage.Id);
 
@@ -35,6 +35,8 @@ namespace MemeOfTheYear.Providers
                 };
                 _votes.Add(vote);
                 await _context.AddVote(vote);
+
+                return vote;
             }
             else
             {
@@ -42,6 +44,8 @@ namespace MemeOfTheYear.Providers
                 _votes[index].Type = type;
 
                 await _context.UpdateVote(_votes[index]);
+
+                return _votes[index];
             }
         }
 

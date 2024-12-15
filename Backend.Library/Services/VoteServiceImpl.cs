@@ -34,7 +34,7 @@ namespace MemeOfTheYear.Services
 
             if (session == null)
             {
-                session = await sessionProvider.CreateNew();
+                session = await sessionProvider.CreateNew(sessionId);
             }
             else
             {

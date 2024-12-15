@@ -6,6 +6,10 @@ namespace MemeOfTheYear.Database
 {
     public class MemeOfTheYearContext(ILogger<MemeOfTheYearContext> logger) : DbContext, IContext
     {
+        List<Session> IContext.Sessions => [.. Sessions];
+        List<Image> IContext.Images => [.. Images];
+        List<Vote> IContext.Votes => [.. Votes];
+
         public DbSet<Session> Sessions { get; set; }
         public DbSet<Image> Images { get; set; }
         public DbSet<Vote> Votes { get; set; }
@@ -19,7 +23,9 @@ namespace MemeOfTheYear.Database
             var connectionString = $"server={server};user={username};password={password};database=memeOfTheYear";
             logger.LogDebug("Connect to {}", connectionString);
 
-            optionsBuilder.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
+            optionsBuilder.UseMySql(connectionString, 
+                                    ServerVersion.AutoDetect(connectionString), 
+                                    options => options.MigrationsAssembly("Backend.Application"))
                 .LogTo(Console.WriteLine, LogLevel.Information)
                 .EnableSensitiveDataLogging()
                 .EnableDetailedErrors();

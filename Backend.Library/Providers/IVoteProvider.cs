@@ -4,7 +4,7 @@ namespace MemeOfTheYear.Providers
 {
     public interface IVoteProvider
     {
-        Task SetVoting(Session session, Image image, Stage stage, VoteType type);
+        Task<Vote> SetVoting(Session session, Image image, Stage stage, VoteType type);
 
         Image? GetNextRandomImage(Session session, Stage stage);
 

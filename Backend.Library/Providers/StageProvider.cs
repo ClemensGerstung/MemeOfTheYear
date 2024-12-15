@@ -13,11 +13,14 @@ namespace MemeOfTheYear.Providers
     ) : IStageProvider
     {
         private int _stageIndex = 0;
-        private TimeSpan _waitTimeSpan;
 
         public List<Stage> Stages { get; private set; } = new();
 
         public Stage CurrentStage { get; private set; } = new();
+
+        public Task BackgroundTask { get; private set; } = Task.CompletedTask;
+
+        public TimeSpan WaitDuration { get; set; } = TimeSpan.FromMinutes(1);
 
         private async Task CheckStages()
         {
@@ -70,7 +73,7 @@ namespace MemeOfTheYear.Providers
                 }
             }
 
-            await Task.Delay(_waitTimeSpan);
+            await Task.Delay(WaitDuration);
             await CheckStages();
         }
 
@@ -81,13 +84,12 @@ namespace MemeOfTheYear.Providers
 
             CurrentStage = Stages.Where(x => x.EndsAt >= DateTime.Now).First();
             _stageIndex = Stages.IndexOf(CurrentStage);
-            _waitTimeSpan = TimeSpan.FromMinutes(1);
 
             logger.LogDebug("{}", CurrentStage);
 
-            _ = Task.Run(async () =>
+            BackgroundTask = Task.Run(async () =>
             {
-                await Task.Delay(_waitTimeSpan);
+                await Task.Delay(WaitDuration);
                 await CheckStages();
             });
 

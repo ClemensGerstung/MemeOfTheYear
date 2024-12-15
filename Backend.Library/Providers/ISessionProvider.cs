@@ -6,10 +6,10 @@ namespace MemeOfTheYear.Providers
     {
         Session? GetSession(string id);
 
-        Task<Session> CreateNew();
+        Task<Session> CreateNew(string id);
 
         bool IsAllowed(string id);
 
-        Task Authenticate(string id);
+        Task<Session> Authenticate(string id);
     }
 }
