@@ -1,4 +1,6 @@
+using System.Security.Cryptography;
 using System.Text.Json;
+using MemeOfTheYear.Types;
 using Microsoft.Extensions.Logging;
 
 namespace MemeOfTheYear.Providers
@@ -79,6 +81,43 @@ namespace MemeOfTheYear.Providers
         public Stream OpenRead(string orig)
         {
             return File.OpenRead(Path.Combine(_uploadPath, orig));
+        }
+
+        public async Task<List<Image>> GetExistingImages()
+        {
+            var directory = new DirectoryInfo(ImagePath);
+            var images = new List<Image>();
+            using SHA256 hasher = SHA256.Create();
+
+            foreach (var file in directory.GetFiles())
+            {
+                var extension = Path.GetExtension(file.Name);
+                var mimeType = extension switch
+                {
+                    ".jpg" => "image/jpeg",
+                    ".png" => "image/png",
+                    ".gif" => "image/gif",
+                    _ => string.Empty
+                };
+
+                using var stream = file.OpenRead();
+                var rawHash = await hasher.ComputeHashAsync(stream);
+                var hash = Convert.ToBase64String(rawHash);
+                stream.Close();
+
+                var image = new Image
+                {
+                    Id = Path.GetFileNameWithoutExtension(file.Name),
+                    MimeType = mimeType,
+                    IsEnabled = true,
+                    UploadCount = 1,
+                    Hash = hash
+                };
+
+                images.Add(image);
+            }
+
+            return images;
         }
     }
 }

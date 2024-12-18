@@ -8,6 +8,7 @@ using Xunit;
 public class ImageProviderTest : IAsyncLifetime
 {
     private readonly Mock<IContext> context = new();
+    private readonly Mock<ILocalStorageProvider> localStorageProvider = new();
     private readonly ILogger<ImageProvider> logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger<ImageProvider>();
 
     private readonly List<Image> _images = [];
@@ -19,7 +20,7 @@ public class ImageProviderTest : IAsyncLifetime
     {
         context.SetupGet(x => x.Images).Returns(_images);
 
-        imageProvider = new ImageProvider(logger, context.Object);
+        imageProvider = new ImageProvider(logger, localStorageProvider.Object, context.Object);
 
         return Task.CompletedTask;
     }

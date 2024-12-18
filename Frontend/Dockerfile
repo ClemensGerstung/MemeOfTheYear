@@ -6,11 +6,11 @@ RUN set -xe \
     && dnf install aspnetcore-runtime-9.0 -y
 
 RUN set -xe \
-    mkdir -o /tmp/frontend
+    mkdir -o /tmp/Frontend
 
-WORKDIR /tmp/frontend
+WORKDIR /tmp/Frontend
 ADD MemeOfTheYear.proto /tmp/
-ADD frontend/ /tmp/frontend/
+ADD Frontend/ /tmp/Frontend/
 
 ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
 ENV DOTNET_USE_POLLING_FILE_WATCHER=true

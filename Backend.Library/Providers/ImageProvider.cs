@@ -9,11 +9,13 @@ namespace MemeOfTheYear.Providers
         public List<Image> Images { get; }
 
         private readonly ILogger<ImageProvider> _logger;
+        private readonly ILocalStorageProvider _localStorageProvider;
         private readonly IContext _context;
 
-        public ImageProvider(ILogger<ImageProvider> logger, IContext context)
+        public ImageProvider(ILogger<ImageProvider> logger, ILocalStorageProvider localStorageProvider, IContext context)
         {
             _logger = logger;
+            _localStorageProvider = localStorageProvider;
             _context = context;
 
             Images = [.. _context.Images];
@@ -71,6 +73,18 @@ namespace MemeOfTheYear.Providers
                 Images[index] = image;
 
                 await _context.UpdateMeme(image);
+            }
+        }
+
+        public async Task SetupByExistingData()
+        {
+            var existingImages = await _localStorageProvider.GetExistingImages();
+            var missingDatabaseImages = existingImages.Except(Images).ToList();
+
+            foreach (var image in missingDatabaseImages)
+            {
+                _logger.LogInformation("Has local image {} but not on database", image);
+                await _context.AddImage(image);
             }
         }
     }

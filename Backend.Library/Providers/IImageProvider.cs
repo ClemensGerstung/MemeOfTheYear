@@ -18,5 +18,7 @@ namespace MemeOfTheYear.Providers
         string MimeTypeToExtension(string mime);
 
         List<Image> GetAvailableMemes();
+
+        Task SetupByExistingData();
     }
 }

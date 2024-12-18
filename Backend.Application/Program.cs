@@ -33,6 +33,12 @@ if (stages is not null)
     await stages.StartTracking();
 }
 
+var images = app.Services.GetService<IImageProvider>();
+if (images is not null)
+{
+    await images.SetupByExistingData();
+}
+
 app.MapGrpcService<ImageServiceImpl>();
 app.MapGrpcService<VoteServiceImpl>();
 app.MapGrpcService<ChallengeServiceImpl>();

@@ -1,3 +1,5 @@
+using MemeOfTheYear.Types;
+
 namespace MemeOfTheYear.Providers
 {
     public interface ILocalStorageProvider
@@ -13,5 +15,7 @@ namespace MemeOfTheYear.Providers
         Task<T> GetConfigAsync<T>(string configName);
 
         T GetConfig<T>(string configName);
+
+        Task<List<Image>> GetExistingImages();
     }
 }
