@@ -65,7 +65,16 @@
         var voteClient = ClientProvider.GetClient<VoteService.VoteServiceClient>();
         var imageClient = ClientProvider.GetClient<ImageService.ImageServiceClient>();
 
-        var result = await ProtectedLocalStore.GetAsync<string>("id");
+        ProtectedBrowserStorageResult<string> result = new();
+
+        try
+        {
+            result = await ProtectedLocalStore.GetAsync<string>("id");
+        }
+        catch (Exception e)
+        {
+            Logger.LogError("Got Exception {}", e);
+        }
         var response = await voteClient.InitAsync(new SessionIdRequest
             {
                 MaxLikes = int.MaxValue,

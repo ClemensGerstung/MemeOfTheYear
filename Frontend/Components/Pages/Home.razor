@@ -32,7 +32,7 @@
                 <Voter SessionId="@sessionId" StageId="@stage.Id" FirstImage="@imageId"></Voter>
                 break;
             case Stage.Types.Type.Result:
-                <Result SessionId="@sessionId" ></Result>
+                <Result SessionId="@sessionId"></Result>
                 break;
             default:
                 <p>Wow, such empty here!</p>
@@ -56,7 +56,17 @@
         var voteClient = ClientProvider.GetClient<VoteService.VoteServiceClient>();
         var challengeClient = ClientProvider.GetClient<ChallengeService.ChallengeServiceClient>();
 
-        var result = await ProtectedLocalStore.GetAsync<string>("id");
+        ProtectedBrowserStorageResult<string> result = new();
+
+        try
+        {
+            result = await ProtectedLocalStore.GetAsync<string>("id");
+        }
+        catch (Exception e)
+        {
+            Logger.LogError("Got Exception {}", e);
+        }
+
         var response = await voteClient.InitAsync(new SessionIdRequest
             {
                 MaxLikes = int.MaxValue,

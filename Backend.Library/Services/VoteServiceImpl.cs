@@ -79,6 +79,8 @@ namespace MemeOfTheYear.Services
                 throw new InvalidOperationException("Session not authenticated!");
             }
 
+            logger.LogInformation("Session: {}, Image: {}, Stage: {}, type: {}", request.SessionId, request.ImageId, request.StageId, type);
+
             var session = sessionProvider.GetSession(request.SessionId)!;
             var stage = stageProvider.GetStageById(request.StageId);
 

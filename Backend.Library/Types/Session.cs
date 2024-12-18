@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace MemeOfTheYear.Types
 {
     public class Session
@@ -23,6 +25,11 @@ namespace MemeOfTheYear.Types
         public bool Equals(Session session)
         {
             return Id == session.Id;
+        }
+
+        public override string ToString()
+        {
+            return JsonSerializer.Serialize(this);
         }
     }
 }
