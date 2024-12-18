@@ -2,7 +2,7 @@ services:
   frontend:
     build:
       context: ./
-      dockerfile: frontend/Dockerfile
+      dockerfile: Frontend/Dockerfile
     restart: unless-stopped
     ports:
       - "80:80"
@@ -14,9 +14,6 @@ services:
       - frontend
       - backend
     volumes:
-      # - ./data/nginx:/etc/nginx/conf.d
-      # - ./data/certbot/conf:/etc/letsencrypt
-      # - ./data/certbot/www:/var/www/certbot
       - data:/opt/data/data
   database:
     image: mariadb:latest
@@ -39,7 +36,7 @@ services:
   backend:
     build:
       context: ./
-      dockerfile: backend/Dockerfile
+      dockerfile: Backend.Application/Dockerfile
     environment:
       MYSQL_SERVER: memeoftheyear-database-1
       MYSQL_USERNAME: user

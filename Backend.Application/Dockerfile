@@ -21,4 +21,4 @@ RUN set -xe \
     && dotnet build \
     && chmod +x entry_point.sh
 
-CMD ["/tmp/backend/entry_point.sh"]
+CMD ["/tmp/Backend.Application/entry_point.sh"]

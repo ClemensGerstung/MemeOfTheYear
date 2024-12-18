@@ -80,9 +80,21 @@ namespace MemeOfTheYear.Providers
         {
             var existingImages = await _localStorageProvider.GetExistingImages();
             var missingDatabaseImages = existingImages.Except(Images).ToList();
+            var session = new Session
+            {
+                Id = Guid.Empty.ToString(),
+                IsAuthenticated = true
+            };
+
+            if (!_context.Sessions.Contains(session))
+            {
+                await _context.AddSession(session);
+            }
 
             foreach (var image in missingDatabaseImages)
             {
+                image.Uploader = session;
+
                 _logger.LogInformation("Has local image {} but not on database", image);
                 await _context.AddImage(image);
             }
