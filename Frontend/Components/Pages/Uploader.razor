@@ -17,10 +17,38 @@
     <p>
         <label>
             Du kannst bis zu @MaxAllowedFiles Memes gleichzeitig hochladen:
-            <InputFile OnChange="OnInputFileChange" multiple accept=".jpg,.jpeg,.gif,.png" />
+            <InputFile OnChange="OnInputFileChange" multiple accept=".jpg,.jpeg,.gif,.png,.mp4,.webm,.mov" />
         </label>
     </p>
 
+    @if (uploadErrors.Any())
+    {
+        <div class="alert alert-danger mt-3">
+            @foreach (var error in uploadErrors)
+            {
+                <div>@error</div>
+            }
+        </div>
+    }
+
+    @foreach (var progress in uploadProgress)
+    {
+        <div class="row mt-2">
+            <div class="col-md-4">@progress.FileName</div>
+            <div class="col-md-8">
+                <div class="progress">
+                    <div class="progress-bar progress-bar-striped @(progress.IsComplete ? "" : "progress-bar-animated")" 
+                         role="progressbar" 
+                         style="width: @(progress.Percentage)%"
+                         aria-valuenow="@progress.Percentage" 
+                         aria-valuemin="0" 
+                         aria-valuemax="100">
+                        @progress.Percentage%
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
 
     @foreach (var uploadResult in uploadResults)
     {
@@ -29,7 +57,14 @@
                 <p>@uploadResult.Name</p>
             </div>
             <div class="col-md-7 col-sm-12 p-1">
-                <img src="@uploadResult.Content" class="rounded img-fluid" style="max-height: 150px;"/>
+                @if (uploadResult.IsVideo)
+                {
+                    <video src="@uploadResult.Content" controls class="rounded img-fluid" style="max-height: 150px;" />
+                }
+                else
+                {
+                    <img src="@uploadResult.Content" class="rounded img-fluid" style="max-height: 150px;" />
+                }
             </div>
         </div>
     }
@@ -41,10 +76,11 @@
 
     [Parameter] public int MaxAllowedFiles { get; set; } = 10;
 
-    [Parameter] public int MaxFileSize { get; set; } = 1 * 1024 * 1024;
+    [Parameter] public int MaxFileSize { get; set; } = 4 * 1024 * 1024;
 
     private List<UploadedImage> uploadResults = new();
-
+    private List<string> uploadErrors = new();
+    private List<FileUploadProgress> uploadProgress = new();
     private bool shouldRender;
 
     protected override bool ShouldRender() => shouldRender;
@@ -60,6 +96,8 @@
     {
         shouldRender = false;
         var upload = false;
+        uploadErrors.Clear();
+        uploadProgress.Clear();
 
         List<File> files = new();
         using var content = new MultipartFormDataContent();
@@ -70,20 +108,38 @@
         {
             try
             {
-                Logger.LogInformation($"Append File {file.Name} with {file.ContentType}");
+                if (file.Size > MaxFileSize)
+                {
+                    uploadErrors.Add($"{file.Name}: File size exceeds {MaxFileSize / (1024 * 1024)}MB limit");
+                    continue;
+                }
 
+                Logger.LogInformation($"Append File {file.Name} with {file.ContentType}");
+                
+                var progress = new FileUploadProgress { FileName = file.Name };
+                uploadProgress.Add(progress);
+                
                 files.Add(new() { Name = file.Name });
 
                 var stream = new LazyBrowserFileStream(file, MaxFileSize);
                 var fileContent = new StreamContent(stream);
                 fileContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
-                content.Add(content: fileContent, name: "\"files\"", fileName: file.Name);
-
+                
+                // Set up progress tracking
+                var progressContent = new ProgressStreamContent(fileContent, async uploadProgress => {
+                    progress.Percentage = (int)((100.0 * uploadProgress.BytesTransferred) / uploadProgress.TotalBytes);
+                    await InvokeAsync(StateHasChanged);
+                });
+                
+                content.Add(content: progressContent, name: "\"files\"", fileName: file.Name);
                 upload = true;
+                shouldRender = true;
+                await InvokeAsync(StateHasChanged);
             }
             catch (Exception ex)
             {
                 Logger.LogWarning("{0} not uploaded (Err: 6): {1}", file.Name, ex.Message);
+                uploadErrors.Add($"{file.Name}: {ex.Message}");
             }
         }
 
@@ -93,6 +149,14 @@
             client.DefaultRequestHeaders.Add("session", SessionId);
             using var response = await client.PostAsync($"{NavigationManager.BaseUri}Filesave", content);
             Logger.LogInformation("Is success {}", response.IsSuccessStatusCode);
+
+            // Mark all uploads as complete
+            foreach (var progress in uploadProgress)
+            {
+                progress.Percentage = 100;
+                progress.IsComplete = true;
+            }
+            await InvokeAsync(StateHasChanged);
 
             if (response.IsSuccessStatusCode)
             {
@@ -138,5 +202,13 @@
     {
         public string Name { get; set; } = "";
         public string Content { get; set; } = "";
+        public bool IsVideo => Content.StartsWith("data:video/");
+    }
+
+    private class FileUploadProgress
+    {
+        public string FileName { get; set; } = "";
+        public int Percentage { get; set; }
+        public bool IsComplete { get; set; }
     }
 }

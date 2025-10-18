@@ -18,7 +18,7 @@ public class FilesaveController(
         logger.LogInformation("Post File ...");
 
         var maxAllowedFiles = 10;
-        long maxFileSize = 1 * 1024 * 1024;
+        long maxFileSize = 4 * 1024 * 1024; // Increased to 4MB
         var filesProcessed = 0;
         var resourcePath = new Uri($"{Request.Scheme}://{Request.Host}/");
 
