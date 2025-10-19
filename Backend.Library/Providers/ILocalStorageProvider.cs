@@ -10,6 +10,8 @@ namespace MemeOfTheYear.Providers
 
         Task<string> GetFileContent(string filename);
 
+        IAsyncEnumerable<byte[]> GetFileContentStream(string filename);
+
         Stream OpenRead(string orig);
 
         Task<T> GetConfigAsync<T>(string configName);

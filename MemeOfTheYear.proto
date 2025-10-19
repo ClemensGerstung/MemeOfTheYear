@@ -85,7 +85,8 @@ message GetImageRequest {
 }
 
 message GetImageResponse {
-  string imageContent = 1;
+  reserved 1;
+  Image image = 2;
 }
 
 message GetVotedImagesRequest {
@@ -124,6 +125,15 @@ message SetImageEnabledResponse {
 
 }
 
+message GetImageDataRequest {
+  string imageId = 1;
+  string sessionId = 2;
+}
+
+message GetImageDataResponse {
+  bytes chunkData = 1;
+}
+
 service VoteService {
   rpc Init(SessionIdRequest) returns (SessionIdResponse);
 
@@ -143,6 +153,10 @@ service ImageService {
   rpc GetImage(GetImageRequest) returns (GetImageResponse);
 
   rpc GetAllImages(GetImagesRequest) returns (GetImagesResponse);
+}
+
+service ImageStreamService {
+  rpc GetImageData(GetImageDataRequest) returns (stream GetImageDataResponse);
 }
 
 service ResultService {

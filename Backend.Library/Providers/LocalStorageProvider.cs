@@ -120,5 +120,37 @@ namespace MemeOfTheYear.Providers
 
             return images;
         }
+
+        public async IAsyncEnumerable<byte[]> GetFileContentStream(string filename)
+        {
+            var filePath = Path.Combine(ImagePath, filename);
+            var bufferSize = 64 * 1024; // 64KB
+            var buffer = new byte[bufferSize];
+
+            using var filestream = File.OpenRead(filePath);
+
+            while (true)
+            {
+                var bytesRead = filestream.Read(buffer, 0, bufferSize);
+                if (bytesRead == 0)
+                {
+                    break;
+                }
+
+                if (bytesRead < bufferSize)
+                {
+                    var lastBuffer = new byte[bytesRead];
+                    Array.Copy(buffer, lastBuffer, bytesRead);
+                    yield return lastBuffer;
+                }
+                else
+                {
+                    yield return buffer;
+                    buffer = new byte[bufferSize]; // Allocate a new buffer for the next read
+                }
+            }
+
+            filestream.Close();
+        }
     }
 }

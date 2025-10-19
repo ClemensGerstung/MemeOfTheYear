@@ -53,7 +53,15 @@ namespace MemeOfTheYear.Services
 
             return new GetImageResponse
             {
-                ImageContent = $"data:{image.MimeType};base64, {content}"
+                Image = new Remote.Image
+                {
+                    Id = image.Id,
+                    Hash = image.Hash,
+                    MimeType = image.MimeType,
+                    Uploaded = image.UploadCount,
+                    Likes = 0,
+                    Dislikes = 0
+                },
             };
         }
 

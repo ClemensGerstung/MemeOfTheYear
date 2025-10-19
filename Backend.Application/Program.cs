@@ -44,6 +44,7 @@ app.MapGrpcService<VoteServiceImpl>();
 app.MapGrpcService<ChallengeServiceImpl>();
 app.MapGrpcService<AdminServiceImpl>();
 app.MapGrpcService<ResultServiceImpl>();
+app.MapGrpcService<ImageStreamServiceImpl>();
 app.MapGet("/", () => "Communication with gRPC endpoints must be made through a gRPC client");
 
 app.Run();

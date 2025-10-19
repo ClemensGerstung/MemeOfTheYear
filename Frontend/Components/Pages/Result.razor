@@ -67,7 +67,7 @@
                     SessionId = this.SessionId,
                     ImageId = img.Id
                 });
-            images.Add(imageResponse.ImageContent);
+            @* images.Add(imageResponse.ImageContent); *@
         }
 
         winnerImage = images.FirstOrDefault(string.Empty);
