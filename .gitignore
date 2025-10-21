@@ -5,3 +5,5 @@ Migrations/
 images/
 config/
 data/opt
+upload
+temp/

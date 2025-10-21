@@ -297,10 +297,10 @@
         {
             // random direction and distance
             var angle = rand.NextDouble() * Math.PI * 2;
-            var dist = 40 + rand.NextDouble() * 80; // px
+            var dist = 40 + rand.NextDouble() * 120; // px
             var tx = Math.Cos(angle) * dist;
             var ty = Math.Sin(angle) * dist;
-            var size = 6 + rand.Next(8);
+            var size = 16 + rand.Next(24);
             var p = new Particle { Style = $"--tx:{tx}px; --ty:{ty}px; width:{size}px; height:{size}px;" };
             list.Add(p);
         }

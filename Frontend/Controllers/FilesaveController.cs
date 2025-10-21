@@ -92,7 +92,8 @@ public class FilesaveController(
         List<UploadResult> uploadResults = response.Images
                                                     .Select(x => new UploadResult
                                                     {
-                                                        ImageId = x.Id
+                                                        ImageId = x.Id,
+                                                        MimeType = x.MimeType
                                                     })
                                                     .ToList();
 

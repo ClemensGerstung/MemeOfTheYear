@@ -3,6 +3,7 @@
 @using System.Net.Http.Headers
 @using System.Text.Json
 @using BlazorBootstrap
+@using Grpc.Core
 @using Grpc.Net.Client
 @using MemeOfTheYear.Remote
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
@@ -37,12 +38,9 @@
             <div class="col-md-4">@progress.FileName</div>
             <div class="col-md-8">
                 <div class="progress">
-                    <div class="progress-bar progress-bar-striped @(progress.IsComplete ? "" : "progress-bar-animated")" 
-                         role="progressbar" 
-                         style="width: @(progress.Percentage)%"
-                         aria-valuenow="@progress.Percentage" 
-                         aria-valuemin="0" 
-                         aria-valuemax="100">
+                    <div class="progress-bar progress-bar-striped @(progress.IsComplete ? "" : "progress-bar-animated")"
+                        role="progressbar" style="width: @(progress.Percentage)%" aria-valuenow="@progress.Percentage"
+                        aria-valuemin="0" aria-valuemax="100">
                         @progress.Percentage%
                     </div>
                 </div>
@@ -103,6 +101,7 @@
         using var content = new MultipartFormDataContent();
 
         var imageService = ClientProvider.GetClient<ImageService.ImageServiceClient>();
+        var imageStreamService = ClientProvider.GetClient<ImageStreamService.ImageStreamServiceClient>();
 
         foreach (var file in e.GetMultipleFiles(MaxAllowedFiles))
         {
@@ -115,22 +114,23 @@
                 }
 
                 Logger.LogInformation($"Append File {file.Name} with {file.ContentType}");
-                
+
                 var progress = new FileUploadProgress { FileName = file.Name };
                 uploadProgress.Add(progress);
-                
+
                 files.Add(new() { Name = file.Name });
 
                 var stream = new LazyBrowserFileStream(file, MaxFileSize);
                 var fileContent = new StreamContent(stream);
                 fileContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
-                
+
                 // Set up progress tracking
-                var progressContent = new ProgressStreamContent(fileContent, async uploadProgress => {
+                var progressContent = new ProgressStreamContent(fileContent, async uploadProgress =>
+                {
                     progress.Percentage = (int)((100.0 * uploadProgress.BytesTransferred) / uploadProgress.TotalBytes);
                     await InvokeAsync(StateHasChanged);
                 });
-                
+
                 content.Add(content: progressContent, name: "\"files\"", fileName: file.Name);
                 upload = true;
                 shouldRender = true;
@@ -161,9 +161,9 @@
             if (response.IsSuccessStatusCode)
             {
                 var options = new JsonSerializerOptions
-                    {
-                        PropertyNameCaseInsensitive = true,
-                    };
+                {
+                    PropertyNameCaseInsensitive = true,
+                };
 
                 using var responseStream = await response.Content.ReadAsStreamAsync();
                 var newUploadResults = await JsonSerializer.DeserializeAsync<IList<UploadResult>>(responseStream, options);
@@ -175,16 +175,27 @@
 
                     foreach (var result in newUploadResults)
                     {
-                        var imageResponse = await imageService.GetImageAsync(new GetImageRequest
-                            {
-                                ImageId = result.ImageId,
-                                SessionId = this.SessionId
-                            });
+                        var imageResponse = imageStreamService.GetImageData(new GetImageDataRequest
+                        {
+                            ImageId = result.ImageId,
+                            SessionId = this.SessionId
+                        });
+
+                        using var ms = new MemoryStream();
+                        await foreach (var chunk in imageResponse.ResponseStream.ReadAllAsync())
+                        {
+                            await ms.WriteAsync(chunk.ChunkData.ToByteArray());
+                        }
+                        await ms.FlushAsync();
+                        ms.Seek(0, SeekOrigin.Begin);
+
+                        var imageContent = $"data:{result.MimeType};base64, {Convert.ToBase64String(ms.ToArray())}";
+
                         uploadResults.Add(new UploadedImage
-                            {
-                                Name = result.ImageId,
-                                @* Content = imageResponse.ImageContent *@
-                            });
+                        {
+                            Name = result.ImageId,
+                            Content = imageContent
+                        });
                     }
                 }
             }

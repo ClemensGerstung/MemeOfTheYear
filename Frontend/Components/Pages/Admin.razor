@@ -1,6 +1,7 @@
 @page "/Admin"
 
 @using BlazorBootstrap
+@using Grpc.Core
 @using Grpc.Net.Client
 @using MemeOfTheYear.Remote
 @using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
@@ -14,26 +15,33 @@
 @if (hasSession)
 {
     <div class="table-responsive">
-    <table class="table table-hover table-striped">
-        <thead>
-            <tr>
-                <th scope="col">#</th>
-                <th scope="col">Id</th>
-                <th scope="col">Hash</th>
-                <th scope="col">MimeType</th>
-                <th scope="col">Uploaded</th>
-                <th scope="col">Likes</th>
-                <th scope="col">Dislikes</th>
-                <th scope="col">Enabled</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var image in images)
+        <table class="table table-hover table-striped">
+            <thead>
+                <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Id</th>
+                    <th scope="col">Hash</th>
+                    <th scope="col">MimeType</th>
+                    <th scope="col">Uploaded</th>
+                    <th scope="col">Likes</th>
+                    <th scope="col">Dislikes</th>
+                    <th scope="col">Enabled</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var image in images)
                 {
                     <tr>
                         <td class="w-25">
-                            <Image Src="@image.ImageContent" style="min-width:150px;width:150px"
-                                Class="img-fluid img-thumbnail" />
+                            @if (image.IsVideo)
+                            {
+                                <video class="media-element" src="@image.ImageContent" autoplay muted playsinline loop></video>
+                            }
+                            else
+                            {
+                                <Image Src="@image.ImageContent" style="min-width:150px;width:150px"
+                                    Class="img-fluid img-thumbnail" />
+                            }
                         </td>
                         <td>@image.Id</td>
                         <td>@image.Hash</td>
@@ -64,6 +72,7 @@
 
         var voteClient = ClientProvider.GetClient<VoteService.VoteServiceClient>();
         var imageClient = ClientProvider.GetClient<ImageService.ImageServiceClient>();
+        var imageStreamClient = ClientProvider.GetClient<ImageStreamService.ImageStreamServiceClient>();
 
         ProtectedBrowserStorageResult<string> result = new();
 
@@ -76,10 +85,10 @@
             Logger.LogError("Got Exception {}", e);
         }
         var response = await voteClient.InitAsync(new SessionIdRequest
-            {
-                MaxLikes = int.MaxValue,
-                SessionId = result.Value ?? string.Empty
-            });
+        {
+            MaxLikes = int.MaxValue,
+            SessionId = result.Value ?? string.Empty
+        });
 
         sessionId = response.SessionId;
         hasSession = response.IsAuthenticated;
@@ -89,22 +98,38 @@
             foreach (var image in imagesResponse.Images)
             {
                 var imageContentResponse = await imageClient.GetImageAsync(new GetImageRequest
-                    {
-                        SessionId = response.SessionId,
-                        ImageId = image.Id
-                    });
+                {
+                    SessionId = response.SessionId,
+                    ImageId = image.Id
+                });
+
+                var imageStreamResponse = imageStreamClient.GetImageData(new GetImageDataRequest
+                {
+                    SessionId = response.SessionId,
+                    ImageId = image.Id
+                });
+
+                using var ms = new MemoryStream();
+                await foreach (var chunk in imageStreamResponse.ResponseStream.ReadAllAsync())
+                {
+                    await ms.WriteAsync(chunk.ChunkData.ToByteArray());
+                }
+                await ms.FlushAsync();
+                ms.Seek(0, SeekOrigin.Begin);
+
+                var imageContent = $"data:{image.MimeType};base64, {Convert.ToBase64String(ms.ToArray())}";
 
                 images.Add(new DisplayableImage
-                    {
-                        Id = image.Id,
-                        Hash = image.Hash,
-                        @* ImageContent = imageContentResponse.ImageContent, *@
-                        IsEnabled = image.Enabled,
-                        MimeType = image.MimeType,
-                        UploadCount = image.Uploaded,
-                        Likes = image.Likes,
-                        Dislikes = image.Dislikes,
-                    });
+                {
+                    Id = image.Id,
+                    Hash = image.Hash,
+                    ImageContent = imageContent,
+                    IsEnabled = image.Enabled,
+                    MimeType = image.MimeType,
+                    UploadCount = image.Uploaded,
+                    Likes = image.Likes,
+                    Dislikes = image.Dislikes,
+                });
             }
         }
     }
@@ -114,11 +139,11 @@
         var adminClient = ClientProvider.GetClient<AdminService.AdminServiceClient>();
 
         var response = await adminClient.SetImageEnabledAsync(new SetImageEnabledRequest
-            {
-                SessionId = sessionId,
-                ImageId = imageId,
-                Enabled = enabled
-            });
+        {
+            SessionId = sessionId,
+            ImageId = imageId,
+            Enabled = enabled
+        });
 
         Logger.LogInformation("Changed state of image {}", imageId);
     }
@@ -132,6 +157,7 @@
         public bool IsEnabled { get; set; } = true;
 
         public string MimeType { get; set; } = "";
+        public bool IsVideo => MimeType.StartsWith("video/");
 
         public int UploadCount { get; set; }
 
