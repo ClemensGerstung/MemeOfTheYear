@@ -14,13 +14,13 @@ services:
       - frontend
       - backend
     volumes:
-      - data:/opt/data/data
+      - ./data/data/upload:/opt/data/data/upload:z
   database:
     image: mariadb:latest
     restart: always
     environment:
       MARIADB_ROOT_PASSWORD: superS3cret!
-      MARIADB_USER: user
+      MARIADB_USER: root
       MARIADB_DATABASE: memeOfTheYear
       MARIADB_PASSWORD: password
     networks:
@@ -32,15 +32,16 @@ services:
       retries: 5
       start_period: 30s
     volumes:
-      - "./allow_user.sql:/docker-entrypoint-initdb.d/11.sql:Z"
+      - "./allow_user.sql:/docker-entrypoint-initdb.d/11.sql:z"
+      - ./data/database:/var/lib/mysql:z
   backend:
     build:
       context: ./
       dockerfile: Backend.Application/Dockerfile
     environment:
       MYSQL_SERVER: memeoftheyear-database-1
-      MYSQL_USERNAME: user
-      MYSQL_PASSWORD: password
+      MYSQL_USERNAME: root
+      MYSQL_PASSWORD: superS3cret!
       MEME_OF_THE_YEAR_UPLOAD: /opt/data/data/upload
       MEME_OF_THE_YEAR_IMAGES: /opt/data/data/images
       MEME_OF_THE_YEAR_CONFIG: /opt/data/config
@@ -52,11 +53,9 @@ services:
         condition: service_healthy
         restart: true
     volumes:
-      - ./data/opt/config:/opt/data/config:Z
-      - data:/opt/data/data
-
-volumes:
-  data:
+      - ./data/opt/config:/opt/data/config:z
+      - ./data/data/upload:/opt/data/data/upload:z
+      - ./data/data/images:/opt/data/data/images:z
 
 networks:
   frontend:

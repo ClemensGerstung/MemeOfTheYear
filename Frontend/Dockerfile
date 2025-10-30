@@ -19,7 +19,6 @@ ENV DOTNET_ROOT=/root/.dotnet
 ENV PATH=$PATH:$DOTNET_ROOT
 
 RUN set -xe \
-    && dotnet publish \
-    && rm -r ./bin/Debug
+    && dotnet publish
 
 CMD ["dotnet", "run"]

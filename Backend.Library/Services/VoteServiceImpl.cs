@@ -22,6 +22,7 @@ namespace MemeOfTheYear.Services
             string sessionId = request.SessionId;
             string nextImageId = string.Empty;
             var stage = stageProvider.CurrentStage;
+            logger.LogDebug("Init: current stage {}", stage);
             var type = stage.Type switch
             {
                 StageType.Nominate => Remote.Stage.Types.Type.Nominate,

@@ -97,6 +97,15 @@
         uploadErrors.Clear();
         uploadProgress.Clear();
 
+        // If the user selected more files than allowed show an error and stop
+        if (e.FileCount > MaxAllowedFiles)
+        {
+            uploadErrors.Add($"You selected {e.FileCount} files but the maximum allowed is {MaxAllowedFiles}.");
+            shouldRender = true;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
         List<File> files = new();
         using var content = new MultipartFormDataContent();
 

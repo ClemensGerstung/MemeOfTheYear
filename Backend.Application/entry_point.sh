@@ -8,7 +8,6 @@ export PATH=$PATH:/root/.dotnet/tools
 chmod -R g+w /opt/data
 
 dotnet ef migrations add InitialCreate
-dotnet ef migrations add UpdateWithStages
 dotnet ef database update
 
 dotnet run
