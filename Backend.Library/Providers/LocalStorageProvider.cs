@@ -98,6 +98,7 @@ namespace MemeOfTheYear.Providers
                     ".png" => "image/png",
                     ".gif" => "image/gif",
                     ".mp4" => "video/mp4",
+                    ".opus" => "video/opus",
                     _ => string.Empty
                 };
 

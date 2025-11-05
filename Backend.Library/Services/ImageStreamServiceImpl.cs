@@ -9,7 +9,7 @@ using Google.Protobuf;
 namespace MemeOfTheYear.Services
 {
     public class ImageStreamServiceImpl(
-        ILogger<ImageServiceImpl> logger,
+        ILogger<ImageStreamServiceImpl> logger,
         ILocalStorageProvider localStorageProvider,
         IImageProvider imageProvider,
         ISessionProvider sessionProvider
@@ -24,7 +24,7 @@ namespace MemeOfTheYear.Services
 
             var image = imageProvider.GetImageById(request.ImageId);
             var filename = $"{image.Id}{imageProvider.MimeTypeToExtension(image.MimeType)}";
-            logger.LogDebug("try get {}", filename);
+            logger.LogDebug("try get {} by {}", filename, image);
 
             await foreach (var chunk in localStorageProvider.GetFileContentStream(filename))
             {

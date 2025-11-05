@@ -55,6 +55,8 @@ namespace MemeOfTheYear.Providers
             var used = _votes.Where(x => x.Session == session && x.StageId == stage.Id && x.Type != VoteType.Skip)
                             .Select(x => x.Image)
                             .ToList();
+            _logger.LogDebug("GetNextRandomImage: available {}, used {}", available.Count, used.Count);
+
             var sessionAvailable = available.Except(used).ToList();
 
             if (sessionAvailable.Count > 0)
